@@ -1,25 +1,38 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"backend/config"
+	user "backend/routes"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+
+	"github.com/uptrace/bun"
+)
+
+type User struct {
+	bun.BaseModel `bun:"table:users,alias:u"`
+
+	ID   int64  `bun:"id,pk,autoincrement"`
+	Name string `bun:"name,notnull"`
+}
 
 func main() {
-	server := gin.Default()
+	router := gin.New()
+	router.Use(cors.Default())
+
+	config.ConntectDB()
+	config.ConnectCache()
 
 	// ping
-	server.GET("/ping", func(context *gin.Context) {
+	router.GET("/ping", func(context *gin.Context) {
 		context.JSON(200, gin.H{
-			"message": "Yes",
+			"message": "ping successful",
 		})
 	})
 
 	// users
-	server.GET("/users", func(context *gin.Context) {
-		context.JSON(200, gin.H{
-			"user": gin.H{
-				"hello":"world",
-				"age":3,
-			},
-		})
-	})
-	server.Run() // listen and serve on 0.0.0.0:8080
+	user.UserRoutes(router)
+
+	router.Run() // listen and serve on 0.0.0.0:8080
 }

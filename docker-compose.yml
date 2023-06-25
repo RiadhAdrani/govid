@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres
+    container_name: govid_db
+    network_mode: host
+    volumes:
+      - 'govid_db_data:/var/lib/postgresql/data'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=govid
+  redis:
+    stop_grace_period: 1s
+    network_mode: host
+    container_name: govid-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - 'govid_redis_data:/data'
+    expose:
+      - 6379
+    command: ['redis-server', '--loglevel', 'warning']
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: govid_api
+    network_mode: host
+    depends_on:
+      - db
+      - redis
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    command: ['air']
+    expose:
+      - 8080
+  app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: govid_app
+    network_mode: host
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - api
+    expose:
+      - 3000
+
+volumes:
+  govid_db_data:
+  govid_redis_data:
