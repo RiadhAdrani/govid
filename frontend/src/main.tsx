@@ -1,6 +1,7 @@
 import './style.css';
 import { mountApp, useEffect, useReactive } from '@riadh-adrani/ruvy';
 import axios from 'axios';
+import 'virtual:uno.css';
 
 const hostElement = document.querySelector<HTMLDivElement>('#app')!;
 
