@@ -9,11 +9,13 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/node": "^20.3.1",
     "typescript": "^5.0.2",
     "vite": "^4.3.9"
   },
   "dependencies": {
     "@riadh-adrani/ruvy": "^0.4.0",
-    "axios": "^1.4.0"
+    "axios": "^1.4.0",
+    "unocss": "^0.53.3"
   }
 }
