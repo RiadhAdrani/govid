@@ -26,4 +26,12 @@ func UserRoutes(router *gin.Engine) {
 		controller.UpdateUser(ctx)
 	})
 
+	router.POST("/signup", func(ctx *gin.Context) {
+		controller.SignUpUser(ctx)
+	})
+
+	router.POST("/signin", func(ctx *gin.Context) {
+		controller.SignInUser(ctx)
+	})
+
 }
