@@ -26,6 +26,13 @@ type User struct {
 	Name string `bun:"name,notnull"`
 }
 
+func Init() {
+	config.ConnectDB()
+	config.ConnectCache()
+
+	config.SyncDB()
+}
+
 type HealthCheckResponse struct {
 	Result string `json:"result" example:"ok"`
 }
@@ -90,18 +97,12 @@ func streamVideo(c *gin.Context) {
 	})
 }
 
-// @title			GoVid!
-// @version		0.0.1
-// @description	The successor of Youtube!
-// @host			localhost:8080
-// @BasePath		/
 func main() {
 
 	router := gin.New()
 	router.Use(cors.Default())
 
-	config.ConntectDB()
-	config.ConnectCache()
+	Init()
 
 	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
