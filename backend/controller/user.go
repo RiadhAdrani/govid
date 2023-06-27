@@ -4,6 +4,7 @@ import (
 	"backend/config"
 	"backend/schema"
 	"backend/utils"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -54,6 +55,9 @@ func CreateUser(c *gin.Context) {
 
 		return
 	}
+
+	fmt.Println("body ----")
+	fmt.Println(c.Request.Body)
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 10)
 

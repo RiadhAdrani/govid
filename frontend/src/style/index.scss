@@ -35,6 +35,22 @@ body {
   font-size: 16px;
 }
 
+h1,
+h2,
+h3 {
+  margin: 5px;
+}
+
+h4,
+h5,
+h6 {
+  margin: 2px;
+}
+
+p {
+  margin: 0px;
+}
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
@@ -45,6 +61,8 @@ h1 {
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
 }
 
 .logo {
