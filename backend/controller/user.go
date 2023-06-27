@@ -5,7 +5,6 @@ import (
 	"backend/schema"
 	"backend/utils"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func GetUsers(c *gin.Context) {
+func GetAllUsers(c *gin.Context) {
 	users := []schema.User{}
 
 	config.DB.Find(&users)
@@ -21,18 +20,10 @@ func GetUsers(c *gin.Context) {
 	c.JSON(200, &users)
 }
 
-func CreateUser(c *gin.Context) {
-	var user schema.User
-
-	c.BindJSON(&user)
-
-	config.DB.Create(&user)
-
-	c.JSON(200, &user)
-}
-
 func UpdateUser(c *gin.Context) {
 	var user schema.User
+
+	// TODO: add body validation
 
 	config.DB.Where("id = ?", c.Param("id")).First(&user)
 	c.BindJSON(&user)
@@ -51,12 +42,10 @@ func DeleteUser(c *gin.Context) {
 }
 
 // perform sign up and send a token
-func SignUpUser(c *gin.Context) {
-	// TODO: add other necessary fields
-	var body struct {
-		Email    string
-		Password string
-	}
+func CreateUser(c *gin.Context) {
+	var body schema.User
+
+	// TODO: add body validation
 
 	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -76,7 +65,12 @@ func SignUpUser(c *gin.Context) {
 		return
 	}
 
-	user := schema.User{Email: body.Email, Password: string(hash)}
+	user := schema.User{
+		Email:     body.Email,
+		Password:  string(hash),
+		FirstName: body.FirstName,
+		LastName:  body.LastName,
+	}
 
 	result := config.DB.Create(&user)
 
@@ -92,7 +86,6 @@ func SignUpUser(c *gin.Context) {
 }
 
 func SignInUser(c *gin.Context) {
-	// TODO: add other necessary fields
 	var body struct {
 		Email    string
 		Password string
@@ -129,8 +122,8 @@ func SignInUser(c *gin.Context) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":  user.Id,
-		"date": time.Now(),
+		"sub": user.Id,
+		"exp": time.Now().Add(time.Hour * 24 * 7),
 	})
 
 	tokenString, tokenErr := token.SignedString([]byte(config.SECRET_JWT))
@@ -138,15 +131,22 @@ func SignInUser(c *gin.Context) {
 	if tokenErr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Failed to create token",
-			"msg":   tokenErr.Error(),
 		})
 
 		return
 	}
 
-	config.CacheDB.Set(c, utils.CreateTokenKey(strconv.Itoa(user.Id), config.AUTH_SUBJECT), tokenString, time.Duration(time.Hour*24*7))
+	config.CacheDB.Set(c, utils.CreateTokenKey(user.Id, config.AUTH_SUBJECT), tokenString, time.Duration(time.Hour*24*7))
 
-	savedToken := config.CacheDB.Get(c, utils.CreateTokenKey(strconv.Itoa(user.Id), config.AUTH_SUBJECT)).Val()
+	savedToken := config.CacheDB.Get(c, utils.CreateTokenKey(user.Id, config.AUTH_SUBJECT)).Val()
 
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("token", savedToken, 3600*24*7, "", "", false, true)
 	c.JSON(http.StatusOK, gin.H{"token": savedToken})
+}
+
+func GetUser(c *gin.Context) {
+	user, _ := c.Get("user")
+
+	c.JSON(http.StatusOK, gin.H{"user": user})
 }
