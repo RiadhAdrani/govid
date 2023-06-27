@@ -1,3 +1,4 @@
+import { PropsWithUtility } from '@riadh-adrani/ruvy';
 import BellIcon from '../Icons/Bell.icon';
 import BurgerIcon from '../Icons/Burger.icon';
 import CreateIcon from '../Icons/Create.icon';
@@ -5,7 +6,7 @@ import MicrophoneIcon from '../Icons/Microphone.icon';
 import SearchIcon from '../Icons/Search.icon';
 import UserIcon from '../Icons/User.icon';
 
-const NavBar = () => {
+const NavBar = (_: PropsWithUtility<{}>) => {
   const shortcuts = [
     {
       icon: <CreateIcon />,
