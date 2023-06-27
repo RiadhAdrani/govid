@@ -1,5 +1,7 @@
 package utils
 
-func CreateTokenKey(id string, subject string) string {
-	return id + "-" + subject
+import "strconv"
+
+func CreateTokenKey(id int, subject string) string {
+	return strconv.Itoa(id) + "-" + subject
 }

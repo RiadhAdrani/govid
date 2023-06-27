@@ -2,36 +2,17 @@ package routes
 
 import (
 	"backend/controller"
-	"log"
+	"backend/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
 func UserRoutes(router *gin.Engine) {
-	router.GET("/users", func(ctx *gin.Context) {
-		controller.GetUsers(ctx)
-	})
+	router.DELETE("/users/:id", middleware.RequireAuth, controller.DeleteUser)
+	router.PUT("/users/:id", middleware.RequireAuth, controller.UpdateUser)
+	router.GET("/users/me", middleware.RequireAuth, controller.GetUser)
 
-	router.POST("/users", func(ctx *gin.Context) {
-		log.Printf("yeet")
-
-		controller.CreateUser(ctx)
-	})
-
-	router.DELETE("/users/:id", func(ctx *gin.Context) {
-		controller.DeleteUser(ctx)
-	})
-
-	router.PUT("/users/:id", func(ctx *gin.Context) {
-		controller.UpdateUser(ctx)
-	})
-
-	router.POST("/signup", func(ctx *gin.Context) {
-		controller.SignUpUser(ctx)
-	})
-
-	router.POST("/signin", func(ctx *gin.Context) {
-		controller.SignInUser(ctx)
-	})
-
+	// auth
+	router.POST("/signup", controller.CreateUser)
+	router.POST("/signin", controller.SignInUser)
 }
