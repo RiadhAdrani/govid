@@ -3,12 +3,11 @@ import { SignupBody } from '../types/user';
 import { UserContext } from '../context/User.context';
 import GButton from '../components/Button/G.Button';
 import GInput from '../components/Button/G.Input';
-import GoogleSpinner from '../components/Spinner/Google.spinner';
+import { UIContext } from '../context/UI.context';
 
 export default () => {
   const { signup } = useContext(UserContext);
-
-  const loading = useReactive({ value: false });
+  const { toggleLoader } = useContext(UIContext);
 
   const form = useReactive<SignupBody>({
     email: '',
@@ -22,9 +21,7 @@ export default () => {
   };
 
   const onSignUpClick = () => {
-    if (loading.value) return;
-
-    loading.value = true;
+    toggleLoader(true);
 
     signup({ ...form })
       .then(() => {
@@ -36,7 +33,7 @@ export default () => {
         alert('unable to create user');
       })
       .finally(() => {
-        loading.value = false;
+        toggleLoader(false);
       });
   };
 
@@ -79,16 +76,11 @@ export default () => {
             onInput={(e) => updateFormField('password', e)}
           />
         </form>
-        <div class={'col self-end items-stretch w-33%'}>
-          <GButton onClick={onSignUpClick}>Sign up</GButton>
-        </div>
-        <div
-          if={loading.value}
-          class="absolute inset-0px col-center bg-[#0e0e0edd] rounded-inherit"
-        >
-          <GoogleSpinner />
-          <h2 class="m-t-10">Just a moment</h2>
-          <h4>Signing you up...</h4>
+        <div class={'row justify-between items-center'}>
+          <a href="/sign-in">Already have an account</a>
+          <GButton onClick={onSignUpClick} class="w-33%">
+            Sign up
+          </GButton>
         </div>
       </div>
     </>

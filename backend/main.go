@@ -100,7 +100,13 @@ func streamVideo(c *gin.Context) {
 func main() {
 
 	router := gin.New()
-	router.Use(cors.Default())
+
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowCredentials = true
+	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	corsConfig.AddAllowMethods("OPTIONS")
+
+	router.Use(cors.New(corsConfig))
 
 	Init()
 

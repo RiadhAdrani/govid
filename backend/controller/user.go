@@ -4,11 +4,13 @@ import (
 	"backend/config"
 	"backend/schema"
 	"backend/utils"
-	"fmt"
+	"backend/validators"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -44,9 +46,7 @@ func DeleteUser(c *gin.Context) {
 
 // perform sign up and send a token
 func CreateUser(c *gin.Context) {
-	var body schema.User
-
-	// TODO: add body validation
+	var body validators.UserCreation
 
 	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -56,8 +56,25 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("body ----")
-	fmt.Println(c.Request.Body)
+	v := validator.New()
+	err := v.Struct(body)
+
+	if err != nil {
+
+		errors := []string{}
+
+		for _, e := range err.(validator.ValidationErrors) {
+			msg := strings.SplitAfterN(e.Error(), "Error:", 2)[1]
+			errors = append(errors, msg)
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  err.(validator.ValidationErrors).Error(),
+			"errors": errors,
+		})
+
+		return
+	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 10)
 
@@ -86,18 +103,37 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "user created successfully"})
+	user.Password = ""
+
+	c.JSON(http.StatusOK, gin.H{"message": "user created successfully", "user": user})
 }
 
 func SignInUser(c *gin.Context) {
-	var body struct {
-		Email    string
-		Password string
-	}
+	var body validators.UserSignin
 
 	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Failed to read body",
+		})
+
+		return
+	}
+
+	v := validator.New()
+	vErr := v.Struct(body)
+
+	if vErr != nil {
+
+		errors := []string{}
+
+		for _, e := range vErr.(validator.ValidationErrors) {
+			msg := strings.SplitAfterN(e.Error(), "Error:", 2)[1]
+			errors = append(errors, msg)
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  vErr.(validator.ValidationErrors).Error(),
+			"errors": errors,
 		})
 
 		return
@@ -144,8 +180,6 @@ func SignInUser(c *gin.Context) {
 
 	savedToken := config.CacheDB.Get(c, utils.CreateTokenKey(user.Id, config.AUTH_SUBJECT)).Val()
 
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie("token", savedToken, 3600*24*7, "", "", false, true)
 	c.JSON(http.StatusOK, gin.H{"token": savedToken})
 }
 
