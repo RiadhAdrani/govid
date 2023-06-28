@@ -5,10 +5,10 @@ import Cookies from 'js-cookie';
 const useApi = axios.create({ baseURL: 'http://localhost:8080' });
 
 useApi.interceptors.request.use((config) => {
-  if (Cookies.get('token')) {
-    if (!config.headers.get('Authorization')) {
-      config.headers.set('Authorization', `Bearer ${Cookies.get('token')}`);
-    }
+  const token = Cookies.get('token');
+
+  if (token) {
+    config.withCredentials = true;
   }
 
   return config;
