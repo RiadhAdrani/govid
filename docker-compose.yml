@@ -4,16 +4,31 @@ services:
   db:
     image: postgres
     container_name: govid_db
-    network_mode: host
+    # network_mode: host
     volumes:
       - 'govid_db_data:/var/lib/postgresql/data'
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=govid
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "root@root.root"
+      PGADMIN_DEFAULT_PASSWORD: "root"
+    container_name: pgadmin
+    depends_on:
+      - db
+
+      
   redis:
     stop_grace_period: 1s
-    network_mode: host
+    # network_mode: host
     container_name: govid-redis
     image: redis:7-alpine
     restart: unless-stopped
@@ -22,12 +37,14 @@ services:
     expose:
       - 6379
     command: ['redis-server', '--loglevel', 'warning']
+    ports:
+      - "6379:6379"
   api:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: govid_api
-    network_mode: host
+    # network_mode: host
     depends_on:
       - db
       - redis
@@ -37,12 +54,15 @@ services:
     command: ['air']
     expose:
       - 8080
+    ports:
+      - "8080:8080"
+      
   app:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: govid_app
-    network_mode: host
+    # network_mode: host
     working_dir: /app
     volumes:
       - ./frontend:/app
@@ -50,6 +70,9 @@ services:
       - api
     expose:
       - 3000
+    ports:
+      - "3000:3000"
+      
 
 volumes:
   govid_db_data:
