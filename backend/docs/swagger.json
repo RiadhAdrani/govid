@@ -1,0 +1,12 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "The successor of Youtube!",
+        "title": "GoVid!",
+        "contact": {},
+        "version": "0.0.1"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {}
+}
