@@ -21,6 +21,9 @@ export default defineConfig({
 
       'col-center': 'col justify-center items-center',
       'row-center': 'row justify-center items-center',
+
+      'icon-btn':
+        'col-center bg-zinc-900 rounded-50% aspect-square hover:bg-zinc-800 active:bg-zinc-700',
     },
   ],
 });

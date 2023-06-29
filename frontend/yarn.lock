@@ -221,10 +221,10 @@
     "@riadh-adrani/utils" "^0.39.0"
     camelcase "^7.0.1"
 
-"@riadh-adrani/ruvy@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@riadh-adrani/ruvy/-/ruvy-0.4.0.tgz#1f8f0ab7306665be30c7e052d6543e443e9d0aa9"
-  integrity sha512-bASb6utnTnKIdM4E2n2asZmhMOHyybSYZoPK24IbucoFLdO6v+lQ9vsy612PQdmnoOZkQZSammZieLGISZYLOQ==
+"@riadh-adrani/ruvy@^0.4.2":
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@riadh-adrani/ruvy/-/ruvy-0.4.2.tgz#ea2f44ed19112ccd127f821efc47b5e561200f19"
+  integrity sha512-0hxD6SZE8O+kSNP1DeR2IgQ34H+fO3TEOTPXNvHoIqq1vX5WeXdOs99vmZFpzCrEA9Vd5wpiTq/RIJwpuy38wQ==
   dependencies:
     "@riadh-adrani/dom-utils" "1.1.0"
     "@riadh-adrani/utils" "0.42.2"
