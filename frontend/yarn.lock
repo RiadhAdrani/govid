@@ -221,16 +221,16 @@
     "@riadh-adrani/utils" "^0.39.0"
     camelcase "^7.0.1"
 
-"@riadh-adrani/ruvy@^0.4.2":
-  version "0.4.2"
-  resolved "https://registry.yarnpkg.com/@riadh-adrani/ruvy/-/ruvy-0.4.2.tgz#ea2f44ed19112ccd127f821efc47b5e561200f19"
-  integrity sha512-0hxD6SZE8O+kSNP1DeR2IgQ34H+fO3TEOTPXNvHoIqq1vX5WeXdOs99vmZFpzCrEA9Vd5wpiTq/RIJwpuy38wQ==
+"@riadh-adrani/ruvy@^0.4.3":
+  version "0.4.3"
+  resolved "https://registry.yarnpkg.com/@riadh-adrani/ruvy/-/ruvy-0.4.3.tgz#27770b9de8685a1a5ea8c428ea128815f4a38ab5"
+  integrity sha512-Muudt5IryrxpnxqhCVXCT3cMJ5EeQPgXWyrJmEZby3IxAEIHJh54wz8B1rL53J2lZOK7gtvuQL1Bl0pE6iPqZg==
   dependencies:
     "@riadh-adrani/dom-utils" "1.1.0"
     "@riadh-adrani/utils" "0.42.2"
     csstype "^3.1.1"
 
-"@riadh-adrani/utils@0.42.2":
+"@riadh-adrani/utils@0.42.2", "@riadh-adrani/utils@^0.42.2":
   version "0.42.2"
   resolved "https://registry.yarnpkg.com/@riadh-adrani/utils/-/utils-0.42.2.tgz#80466d3ec4a919a45fe6500ac997ad8e8d8d94b3"
   integrity sha512-3VUMfi+Utp/l0f/4dxmyxhOf/Wmzt4c0MvXgYkz7AurrPG5iq6rifdeSzb/SZDuHCOtjsRUCt+MHz+yEswYgoA==

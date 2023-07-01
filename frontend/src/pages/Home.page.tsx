@@ -4,14 +4,13 @@ import GButton from '../components/Button/G.Button';
 
 export default () => {
   const { isAuthenticated, signout } = useContext(UserContext);
-
   return (
     <>
-      <div if={isAuthenticated} class="col">
+      <div if={isAuthenticated} class="col gap-2">
         <span>User related videos</span>
         <GButton onClick={signout}>Sign out</GButton>
       </div>
-      <div if={!isAuthenticated} class="col">
+      <div else class="col gap-2">
         General audience videos
         <a href="/sign-in">Sign in</a>
       </div>

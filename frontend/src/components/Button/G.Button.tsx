@@ -1,6 +1,6 @@
 import { PropsWithUtility, joinClasses } from '@riadh-adrani/ruvy';
 
-export type GButtonProps = PropsWithUtility<ComponentProps<HTMLButtonElement, ButtonProps>>;
+export type GButtonProps = PropsWithUtility<HTMLElementProps<HTMLButtonElement, ButtonProps>>;
 
 export default (props: GButtonProps) => {
   return (
