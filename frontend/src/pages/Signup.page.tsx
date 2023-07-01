@@ -2,7 +2,7 @@ import { DOMEvent, navigate, useContext, useReactive } from '@riadh-adrani/ruvy'
 import { SignupBody } from '../types/user';
 import { UserContext } from '../context/User.context';
 import GButton from '../components/Button/G.Button';
-import GInput from '../components/Button/G.Input';
+import GInput from '../components/Input/G.Input';
 import { UIContext } from '../context/UI.context';
 import { AxiosError } from 'axios';
 

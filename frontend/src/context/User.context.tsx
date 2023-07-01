@@ -17,6 +17,7 @@ interface IUserContext {
   signup: SignupFunction;
   signout: () => void;
   isAuthenticated: boolean;
+  user: PublicUser | undefined;
 }
 
 export const UserContext = createContext<IUserContext>({
@@ -24,6 +25,7 @@ export const UserContext = createContext<IUserContext>({
   signup: async () => {},
   isAuthenticated: false,
   signout: () => {},
+  user: undefined,
 });
 
 export const UserProvider = ({ children }: PropsWithUtility<{}>) => {
@@ -44,11 +46,11 @@ export const UserProvider = ({ children }: PropsWithUtility<{}>) => {
       return;
     }
 
-    const res = await useApi.get<PublicUser>('/users/me');
+    const res = await useApi.get<{ user: PublicUser }>('/users/me');
 
     if (res?.data) {
       // redirect user to home page
-      setUser(res.data);
+      setUser(res.data.user);
       navigate('/');
     } else {
       // failed to sign in
@@ -92,7 +94,7 @@ export const UserProvider = ({ children }: PropsWithUtility<{}>) => {
   });
 
   return (
-    <UserContext.Provider value={{ signin, signup, signout, isAuthenticated }}>
+    <UserContext.Provider value={{ signin, signup, signout, isAuthenticated, user }}>
       {children}
     </UserContext.Provider>
   );
