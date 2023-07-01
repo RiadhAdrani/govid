@@ -19,7 +19,7 @@ export default (props: PropsWithUtility<NavBarButtonProps>) => {
   return (
     <div class="relative" ref={ref}>
       <button class={joinClasses('icon-btn relative')} onClick={() => setShow(!show)}>
-        <Icon icon={props.icon} width={25} height={25} />
+        <Icon icon={props.icon} class="w-25px h-25px" />
       </button>
       <GMenu if={show} spacing="m-t-10px" position="bottom-left">
         {props.menu(() => setShow(false))}

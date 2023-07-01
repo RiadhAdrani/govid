@@ -30,7 +30,12 @@ export const UserContext = createContext<IUserContext>({
 
 export const UserProvider = ({ children }: PropsWithUtility<{}>) => {
   const { toggleLoader } = useContext(UIContext);
-  const [user, setUser] = useState<PublicUser | undefined>(undefined);
+  const [user, setUser] = useState<PublicUser | undefined>({
+    email: 'riadh@adrani.com',
+    firstName: 'Adrani',
+    id: 0,
+    lastName: 'Riadh',
+  });
 
   const getUserData = async () => {
     const token = Cookies.get('token');

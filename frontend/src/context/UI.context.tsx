@@ -14,8 +14,11 @@ import useLocalStorage from '../hooks/useLocalStorage.js';
 import GoogleSpinner from '../components/Spinner/Google.spinner.js';
 import Toast from '../components/Toast/Toast.js';
 
-const loaderIndex = 999999;
+const loaderIndex = 9000;
 const toastIndex = loaderIndex + 1;
+
+const container = document.createElement('div');
+document.body.appendChild(container);
 
 interface IUIConext {
   theme: Theme;
@@ -87,7 +90,7 @@ export const UIProvider = ({ children }: { children?: unknown }) => {
       value={{ theme, computedTheme, toggleTheme, showTopNavBar, toggleLoader, showToast }}
     >
       {children}
-      <Portal container={document.body}>
+      <Portal container={container}>
         <div
           if={showLoader}
           class={[`z-${loaderIndex}`, 'fixed inset-0px col-center bg-[#0e0e0edd]']}
