@@ -4,10 +4,11 @@ import { UserContext } from '../context/User.context';
 import GButton from '../components/Button/G.Button';
 import GInput from '../components/Button/G.Input';
 import { UIContext } from '../context/UI.context';
+import { AxiosError } from 'axios';
 
 export default () => {
   const { signup } = useContext(UserContext);
-  const { toggleLoader } = useContext(UIContext);
+  const { toggleLoader, showToast } = useContext(UIContext);
 
   const form = useReactive<SignupBody>({
     email: '',
@@ -28,9 +29,12 @@ export default () => {
         // if success, we redirect to signin
         navigate('/sign-in');
       })
-      .catch(() => {
+      .catch((it: AxiosError<{ error: string; errors: Array<string> }>) => {
         // if failed show alert
-        alert('unable to create user');
+
+        it.response?.data.errors.forEach((it) =>
+          showToast({ component: it, duration: 4000, type: 'danger' })
+        );
       })
       .finally(() => {
         toggleLoader(false);

@@ -6,7 +6,7 @@ import GInput from '../components/Button/G.Input';
 import { UIContext } from '../context/UI.context';
 
 export default () => {
-  const { toggleLoader } = useContext(UIContext);
+  const { toggleLoader, showToast } = useContext(UIContext);
   const { signin } = useContext(UserContext);
 
   const form = useReactive<SigninBody>({
@@ -25,10 +25,10 @@ export default () => {
       .then(() => {
         // if success, we redirect to signin
         // bruh
+        showToast({ component: 'Signed in successfully', duration: 3000, type: 'success' });
       })
       .catch(() => {
-        // if failed show alert
-        alert('unable to login');
+        showToast({ component: 'Unable to Signin', duration: 3000, type: 'danger' });
       })
       .finally(() => {
         toggleLoader(false);

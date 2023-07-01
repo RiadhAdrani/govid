@@ -1,27 +1,16 @@
 import { PropsWithUtility, useContext } from '@riadh-adrani/ruvy';
-import BellIcon from '../Icons/Bell.icon';
 import BurgerIcon from '../Icons/Burger.icon';
-import CreateIcon from '../Icons/Create.icon';
 import MicrophoneIcon from '../Icons/Microphone.icon';
 import SearchIcon from '../Icons/Search.icon';
 import UserIcon from '../Icons/User.icon';
 import { UserContext } from '../../context/User.context';
+import CreateButton from './Create.button';
+import NotificationButton from './Notification.button';
+import UserButton from './User.button';
+import Logo from '../Icons/Logo';
 
 const NavBar = (_: PropsWithUtility<{}>) => {
   const { isAuthenticated } = useContext(UserContext);
-
-  const shortcuts = [
-    {
-      icon: <CreateIcon height={20} width={20} />,
-      label: 'Create',
-    },
-    {
-      icon: <BellIcon height={20} width={20} />,
-      label: 'Notification',
-    },
-  ];
-
-  console.log(isAuthenticated);
 
   return (
     <>
@@ -30,7 +19,10 @@ const NavBar = (_: PropsWithUtility<{}>) => {
           <button class={'icon-btn'}>
             <BurgerIcon height={20} width={20} />
           </button>
-          <h3 class="text-green-500 font-bold text-upper">GoVid</h3>
+          <a class="row-center gap-1 text-[color:inherit] hover:[color:inherit]" href="/">
+            <Logo height={'27px'} class={'text-green-500'} />
+            <h3 class="font-bold">GoVid</h3>
+          </a>
         </div>
         <div class="row flex-1 h-65% gap-2">
           <div class="row flex-1 rounded-10px w-100%">
@@ -50,24 +42,15 @@ const NavBar = (_: PropsWithUtility<{}>) => {
           </button>
         </div>
         <div class="row-center justify-end gap-4 flex-1">
-          <>
-            {shortcuts.map((it) => (
-              <button class="icon-btn" title={it.label} if={isAuthenticated}>
-                {it.icon}
-              </button>
-            ))}
-          </>
-          <>
-            <button if={isAuthenticated} class="icon-btn">
+          <CreateButton />
+          <NotificationButton />
+          <UserButton if={isAuthenticated} />
+          <a else href="/sign-in">
+            <button class="icon-btn row-center aspect-auto rounded-15px p-x-5 p-y-1 gap-2 border border-solid border-1px border-blue-400 text-blue-400">
+              <p>Sign in</p>
               <UserIcon />
             </button>
-            <a if={!isAuthenticated} href="/sign-in">
-              <button class="icon-btn row-center aspect-auto rounded-15px p-x-5 p-y-1 gap-2 border border-solid border-1px border-blue-400 text-blue-400">
-                <p>Sign in</p>
-                <UserIcon />
-              </button>
-            </a>
-          </>
+          </a>
         </div>
       </div>
     </>

@@ -1,6 +1,6 @@
 import { PropsWithUtility, joinClasses } from '@riadh-adrani/ruvy';
 
-export type GInputProps = PropsWithUtility<ComponentProps<HTMLInputElement, InputProps>>;
+export type GInputProps = PropsWithUtility<HTMLElementProps<HTMLInputElement, InputProps>>;
 
 export default (props: GInputProps) => {
   return (
