@@ -22,7 +22,7 @@ export default () => {
                 close();
               }}
             >
-              <Icon icon={it.icon as IconName} width={25} height={25} />
+              <Icon icon={it.icon as IconName} class="w-25px h-25px" />
               <span>{it.label}</span>
             </GButton>
           ))}

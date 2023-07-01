@@ -37,7 +37,7 @@ export type IconName = keyof typeof IconsList;
 
 export default (props: SVGIconProps) => {
   return (
-    <div {...props} class={joinClasses('row-center', props.class)}>
+    <div {...props} if class={joinClasses('col-center w-25px h-25px', props.class)}>
       {IconsList[props.icon]}
     </div>
   );

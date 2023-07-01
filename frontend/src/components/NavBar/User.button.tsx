@@ -37,7 +37,7 @@ export default () => {
           {items.map((it) => (
             <>
               <div
-                if={it.topDivider}
+                if={it.topDivider == true}
                 class="border-t-solid border-t-zinc-700 border-t-1px h-1px m-y-2"
               ></div>
               <GButton

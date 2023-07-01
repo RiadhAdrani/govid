@@ -29,12 +29,14 @@ export default () => {
         // if success, we redirect to signin
         navigate('/sign-in');
       })
-      .catch((it: AxiosError<{ error: string; errors: Array<string> }>) => {
+      .catch((it: AxiosError<{ error: string; errors?: Array<string> }>) => {
         // if failed show alert
 
-        it.response?.data.errors.forEach((it) =>
+        it.response?.data.errors?.forEach((it) =>
           showToast({ component: it, duration: 4000, type: 'danger' })
         );
+
+        // showToast({ component: it.response?.data.error, duration: 4000, type: 'danger' });
       })
       .finally(() => {
         toggleLoader(false);
@@ -43,7 +45,7 @@ export default () => {
 
   return (
     <>
-      <div class="relative col gap-8 border-[#2e2e2e] border-1px border-solid p-x-10 p-y-15 rounded-15px w-350px m-x-auto text-[1.1em]">
+      <div class="col gap-8 border-[#2e2e2e] border-1px border-solid p-x-10 p-y-15 rounded-15px w-350px m-x-auto text-[1.1em]">
         <div class="col">
           <h4>Govid</h4>
           <h3 class="text-green">Create an account</h3>

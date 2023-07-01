@@ -12,8 +12,8 @@ export default () => {
             <Icon icon="settings" />
           </div>
           <div class="p-4 flex-1 col-center">
-            <div class="col text-zinc-500">
-              <Icon icon="bell" class="scale-200 m-b-7" />
+            <div class="col-center text-zinc-500">
+              <Icon icon="bell" class="w-50px h-50px m-b-3" />
               <h3>Your notifications live here</h3>
               <p>Subscribe to your favorite channels to get notified about their latest videos.</p>
             </div>
