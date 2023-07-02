@@ -51,6 +51,7 @@ services:
     working_dir: /app
     volumes:
       - ./backend:/app
+      - ~/public:/app/public
     command: ['air']
     expose:
       - 8080

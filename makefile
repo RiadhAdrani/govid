@@ -5,5 +5,5 @@ install:
 start:
 	docker compose up
 
-restart:
+build:
 	docker compose up --build

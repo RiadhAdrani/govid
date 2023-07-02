@@ -3,7 +3,9 @@ package main
 import (
 	"backend/config"
 	user "backend/routes"
+	"io"
 	"os"
+	"strconv"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -32,7 +34,7 @@ type HealthCheckResponse struct {
 // Summary: Stream a video
 // Description: Streams a video file to the client.
 // Produces:
-//   - application/octet-stream
+//   - video/mp4
 //
 // Responses:
 //
@@ -40,7 +42,8 @@ type HealthCheckResponse struct {
 //	500: InternalServerError
 func streamVideo(c *gin.Context) {
 	// Open the video file
-	file, err := os.Open("D:\\Videos\\video.mp4")
+	file, err := os.Open("./public/video.mp4")
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open video file"})
 		return
@@ -56,9 +59,35 @@ func streamVideo(c *gin.Context) {
 
 	// Set the content type header
 	c.Header("Content-Type", "video/mp4")
+	c.Header("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
 
 	// Serve the video content
-	http.ServeContent(c.Writer, c.Request, fileInfo.Name(), fileInfo.ModTime(), file)
+	//http.ServeContent(c.Writer, c.Request, fileInfo.Name(), fileInfo.ModTime(), file)
+	// Stream the video content
+	c.Stream(func(w io.Writer) bool {
+		// Define the buffer size for each chunk (adjust as needed)
+		bufferSize := 1024 * 64
+
+		// Create a buffer to hold the chunk data
+		buffer := make([]byte, bufferSize)
+
+		// Read a chunk from the file
+		bytesRead, err := file.Read(buffer)
+		if err != nil {
+			return false // Stop streaming on error or EOF
+		}
+
+		// Write the chunk to the response writer
+		_, err = w.Write(buffer[:bytesRead])
+		if err != nil {
+			return false // Stop streaming on write error
+		}
+
+		// Flush the response writer to ensure the chunk is sent immediately
+		c.Writer.Flush()
+
+		return bytesRead == bufferSize // Continue streaming if there's more data
+	})
 }
 
 // @title			GoVid!
@@ -79,6 +108,7 @@ func main() {
 	//	@Summary		Ping the server
 	//	@Description	Returns a successful ping response
 	//	@Tags			ping
+	//	@Accept			json
 	//	@Produce		json
 	//	@Success		200	{object}	PingResponse
 	//	@Router			/ping [get]
