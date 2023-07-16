@@ -3,50 +3,53 @@ package controller
 import (
 	"backend/config"
 	"backend/schema"
-	"backend/utils"
 	"backend/validators"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func GetAllUsers(c *gin.Context) {
-	users := []schema.User{}
+	// users := []schema.User{}
 
-	config.DB.Find(&users)
+	// config.DB.Find(&users)
 
-	c.JSON(200, &users)
+	// c.JSON(200, &users)
+
+	c.JSON(404, gin.H{"error": "Not implemented yet"})
 }
 
 func UpdateUser(c *gin.Context) {
-	var user schema.User
+	// var user schema.User
 
-	// TODO: add body validation
+	// // TODO: add body validation
 
-	config.DB.Where("id = ?", c.Param("id")).First(&user)
-	c.BindJSON(&user)
+	// config.DB.Where("id = ?", c.Param("id")).First(&user)
+	// c.BindJSON(&user)
 
-	config.DB.Save(&user)
+	// config.DB.Save(&user)
 
-	c.JSON(200, &user)
+	// c.JSON(200, &user)
+
+	c.JSON(404, gin.H{"error": "Not implemented yet"})
 }
 
 func DeleteUser(c *gin.Context) {
-	var user schema.User
+	// var user schema.User
 
-	config.DB.Where("id = ?", c.Param("id")).Delete(&user)
+	// config.DB.Where("id = ?", c.Param("id")).Delete(&user)
 
-	c.JSON(200, &user)
+	// c.JSON(200, &user)
+
+	c.JSON(404, gin.H{"error": "Not implemented yet"})
 }
 
 // perform sign up and send a token
 func CreateUser(c *gin.Context) {
-	var body validators.UserCreation
+	var body validators.CreateUserBody
 
 	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -56,27 +59,18 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	v := validator.New()
-	err := v.Struct(body)
+	validated, err := validators.CreateUser(body)
 
 	if err != nil {
 
-		errors := []string{}
-
-		for _, e := range err.(validator.ValidationErrors) {
-			msg := strings.SplitAfterN(e.Error(), "Error:", 2)[1]
-			errors = append(errors, msg)
-		}
-
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":  err.(validator.ValidationErrors).Error(),
-			"errors": errors,
+			"error": err.Error(),
 		})
 
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 10)
+	hash, err := bcrypt.GenerateFromPassword([]byte(validated.Password), 10)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -87,17 +81,17 @@ func CreateUser(c *gin.Context) {
 	}
 
 	user := schema.User{
-		Email:     body.Email,
+		Email:     validated.Email,
 		Password:  string(hash),
-		FirstName: body.FirstName,
-		LastName:  body.LastName,
+		FirstName: validated.FirstName,
+		LastName:  validated.LastName,
 	}
 
 	result := config.DB.Create(&user)
 
 	if result.Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Failed to create user",
+			"error": result.Error.Error(),
 		})
 
 		return
@@ -109,7 +103,7 @@ func CreateUser(c *gin.Context) {
 }
 
 func SignInUser(c *gin.Context) {
-	var body validators.UserSignin
+	var body validators.UserSigninBody
 
 	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -119,21 +113,12 @@ func SignInUser(c *gin.Context) {
 		return
 	}
 
-	v := validator.New()
-	vErr := v.Struct(body)
+	validated, err := validators.UserSignIn(body)
 
-	if vErr != nil {
-
-		errors := []string{}
-
-		for _, e := range vErr.(validator.ValidationErrors) {
-			msg := strings.SplitAfterN(e.Error(), "Error:", 2)[1]
-			errors = append(errors, msg)
-		}
+	if err != nil {
 
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":  vErr.(validator.ValidationErrors).Error(),
-			"errors": errors,
+			"error": err.Error(),
 		})
 
 		return
@@ -151,9 +136,9 @@ func SignInUser(c *gin.Context) {
 		return
 	}
 
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
+	pwdErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(validated.Password))
 
-	if err != nil {
+	if pwdErr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid email or password",
 		})
@@ -176,15 +161,19 @@ func SignInUser(c *gin.Context) {
 		return
 	}
 
-	config.CacheDB.Set(c, utils.CreateTokenKey(user.Id, config.AUTH_SUBJECT), tokenString, time.Duration(time.Hour*24*7))
-
-	savedToken := config.CacheDB.Get(c, utils.CreateTokenKey(user.Id, config.AUTH_SUBJECT)).Val()
-
-	c.JSON(http.StatusOK, gin.H{"token": savedToken})
+	c.JSON(http.StatusOK, gin.H{"token": tokenString})
 }
 
 func GetUser(c *gin.Context) {
-	user, _ := c.Get("user")
+	user, exists := c.Get("user")
+
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "User not found",
+		})
+
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"user": user})
 }

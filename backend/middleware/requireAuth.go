@@ -3,7 +3,6 @@ package middleware
 import (
 	"backend/config"
 	"backend/schema"
-	"backend/utils"
 	"fmt"
 	"net/http"
 	"time"
@@ -46,16 +45,6 @@ func RequireAuth(c *gin.Context) {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
 
-		key := utils.CreateTokenKey(int(claims["sub"].(float64)), config.AUTH_SUBJECT)
-
-		// we also need to check redis if the token exists or not
-		exists, err := config.CacheDB.Exists(c, key).Result()
-
-		if err != nil || exists != 1 {
-			fmt.Println("invalid")
-			c.AbortWithStatus(http.StatusUnauthorized)
-		}
-
 		// find the user with token
 		var user schema.User
 		config.DB.First(&user, claims["sub"])
@@ -63,6 +52,9 @@ func RequireAuth(c *gin.Context) {
 		if user.Id == 0 {
 			c.AbortWithStatus(http.StatusNotFound)
 		}
+
+		// remove password
+		user.Password = ""
 
 		// attach to the request
 		c.Set("user", user)
