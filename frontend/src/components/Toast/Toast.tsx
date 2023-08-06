@@ -1,6 +1,7 @@
 import { PropsWithUtility, useEffect, useMemo, useState } from '@riadh-adrani/ruvy';
 import { NotificationItem } from '../../context/UI.context';
-import Icon from '../Icons/Icon';
+import Icon from '../Icon/Icon';
+// import Icon from '../Icons/Icon';
 
 export interface NotificationProps extends NotificationItem {
   remove: () => void;
@@ -36,11 +37,11 @@ export default ({ component, duration, remove, type }: PropsWithUtility<Notifica
     >
       <div class={'overflow-hidden'}>
         <div class={'bg-zinc-800 p-x-4 p-y-3 rounded row items-start gap-2'}>
-          <div class={'w-25px h-25px row-center'}>
-            <Icon if={type === 'success'} icon="check" class="text-green" />
-            <Icon else-if={type === 'danger'} icon="bell" class="text-red" />
-            <Icon else-if={type === 'warning'} icon="search" class="text-yellow" />
-            <Icon else icon="user" />
+          <div class={'w-25px h-25px row-center'} switch={type}>
+            <Icon case={'success'} icon="check" />
+            <Icon case={'danger'} icon="bell" />
+            <Icon case={'warning'} icon="search" />
+            <Icon case:default icon="user" />
           </div>
           {component}
         </div>

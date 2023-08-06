@@ -1,10 +1,11 @@
 // uno.config.ts
-import { defineConfig, presetUno, presetWebFonts, presetIcons } from 'unocss';
+import { defineConfig, presetUno, presetWebFonts } from 'unocss';
 
-//  const join = (array: Array<string>): string => `@apply ${array.join(' ')}`;
+import presetIcons from '@unocss/preset-icons';
 
 export default defineConfig({
   presets: [
+    presetUno({}),
     presetWebFonts({
       provider: 'google',
       fonts: {
@@ -12,7 +13,6 @@ export default defineConfig({
       },
     }),
     presetIcons(),
-    presetUno(),
   ],
   shortcuts: [
     {

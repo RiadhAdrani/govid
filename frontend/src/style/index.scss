@@ -119,3 +119,13 @@ button {
     transform: translateY(-0px);
   }
 }
+@keyframes player-toggle-play-animation {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(5);
+  }
+}

@@ -13,14 +13,17 @@
     "sass": "^1.63.6",
     "scss": "^0.2.4",
     "typescript": "^5.0.2",
-    "vite": "^4.3.9"
+    "vite": "^4.4.8",
+    "@iconify-json/mdi": "^1.1.54",
+    "@iconify-json/carbon": "^1.1.19",
+    "@unocss/preset-icons": "^0.54.1",
+    "unocss": "^0.54.1"
   },
   "dependencies": {
     "@riadh-adrani/ruvy": "^0.4.9",
     "@riadh-adrani/utils": "^0.42.2",
     "@types/js-cookie": "^3.0.3",
     "axios": "^1.4.0",
-    "js-cookie": "^3.0.5",
-    "unocss": "^0.53.3"
+    "js-cookie": "^3.0.5"
   }
 }
