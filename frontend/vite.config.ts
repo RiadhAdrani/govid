@@ -3,7 +3,7 @@ import UnoCSS from 'unocss/vite';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [UnoCSS({ configFile: path.resolve(__dirname, './uno.config.ts') })],
+  plugins: [UnoCSS({ configFile: path.resolve(__dirname, './unocss.config.ts') })],
   server: {
     port: 3000,
   },

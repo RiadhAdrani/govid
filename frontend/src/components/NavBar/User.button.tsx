@@ -1,23 +1,23 @@
 import NavBarButton from './NavBar.button';
-import Icon, { IconName } from '../Icons/Icon';
 import GButton from '../Button/G.Button';
 import { useContext } from '@riadh-adrani/ruvy';
 import { UserContext } from '../../context/User.context';
+import Icon from '../Icon/Icon';
 
 export default () => {
   const { user, signout } = useContext(UserContext);
 
   const items: Array<{
-    icon: IconName;
+    icon: string;
     label: string;
     onClick?: () => void;
     href?: string;
     topDivider?: boolean;
   }> = [
     { icon: 'user', label: 'Your channel', topDivider: true },
-    { icon: 'studio', label: 'Studio' },
-    { icon: 'settings', label: 'Settings' },
-    { icon: 'signout', label: 'Sign out', onClick: signout, topDivider: true },
+    { icon: 'video', label: 'Studio' },
+    { icon: 'cog', label: 'Settings' },
+    { icon: 'logout', label: 'Sign out', onClick: signout, topDivider: true },
   ];
 
   return (
@@ -47,7 +47,7 @@ export default () => {
                   close();
                 }}
               >
-                <Icon icon={it.icon} class="w-30px h-30px" />
+                <Icon icon={it.icon} class="text-1.5em" />
                 <span>{it.label}</span>
               </GButton>
             </>

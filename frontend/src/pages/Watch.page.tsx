@@ -1,6 +1,21 @@
-import { getSearchParams, useEffect, useMemo, useRef, useState } from '@riadh-adrani/ruvy';
+import {
+  DOMEventHandler,
+  getSearchParams,
+  useEffect,
+  useMemo,
+  useReactive,
+  useRef,
+  useState,
+} from '@riadh-adrani/ruvy';
 import GButton from '../components/Button/G.Button';
-import Icon from '../components/Icons/Icon';
+import { formatTime } from '../utils/time';
+import Icon from '../components/Icon/Icon';
+import VolumeSlider from '../components/Slider/VolumeSlider';
+
+interface BufferedTime {
+  from: number;
+  to: number;
+}
 
 export default () => {
   const videoPlayerElement = useRef<HTMLVideoElement>();
@@ -8,7 +23,21 @@ export default () => {
   const [expanded, setExpanded] = useState(false);
   const [canPlay, setCanPlay] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isPlaying, setPlaying] = useState(false);
+  const [buffered, setBuffered] = useState<Array<BufferedTime>>([]);
+  const [muted, setMuted] = useState(false);
+
+  const controls = useReactive({
+    show: false,
+    timeSinceMouseMoved: Date.now(),
+    muted: false,
+    volume: 1,
+  });
+
+  const isPlaying = useMemo(() => {
+    if (!videoPlayerElement.value) return false;
+
+    return !videoPlayerElement.value.paused;
+  }, videoPlayerElement.value?.paused);
 
   const { v } = getSearchParams();
 
@@ -23,14 +52,48 @@ export default () => {
     return (currentTime / duration) * 100;
   }, [duration, currentTime]);
 
-  const togglePlay = () => {
+  const togglePlay = (value?: boolean) => {
     if (!videoPlayerElement.value) return;
 
-    if (isPlaying) {
-      videoPlayerElement.value?.pause();
-    } else {
+    videoPlayerElement.value.paused;
+
+    const shouldPlay = typeof value === 'boolean' ? value : !isPlaying;
+
+    if (shouldPlay) {
       videoPlayerElement.value?.play().catch();
+    } else {
+      videoPlayerElement.value?.pause();
     }
+  };
+
+  const onProgress: DOMEventHandler<Event, HTMLVideoElement> = () => {
+    if (!videoPlayerElement.value?.duration) return;
+
+    const buffered = videoPlayerElement.value.buffered;
+
+    const out: Array<{ from: number; to: number }> = [];
+
+    for (let i = 0; i < buffered.length; i++) {
+      const from = buffered.start(i);
+      const to = buffered.end(i);
+
+      out.push({ from, to });
+    }
+
+    setBuffered(out);
+  };
+
+  const changeTime: DOMEventHandler<MouseEvent, HTMLDivElement> = (e) => {
+    if (!videoPlayerElement.value) return;
+
+    const target = e.currentTarget;
+
+    const width = target.getBoundingClientRect().width;
+    const x = e.offsetX;
+
+    const percentage = x / width;
+
+    videoPlayerElement.value.currentTime = percentage * duration;
   };
 
   useEffect(() => {
@@ -42,32 +105,116 @@ export default () => {
   return (
     <div class={'row max-w-100vw flex-1 gap-8 p-y-7 p-x-10'}>
       <div class="flex-col flex-1 gap-3">
-        <div class="relative" onMouseEnt>
-          <div class="absolute inset-0px bg-[#00000022] col z-1">
-            <div class={'relative flex-1'}>
-              <div class="absolute m-t-auto bottom-0 right-0 left-0 p-5 col">
-                <div class={'h-5px bg-gray-700'}>
-                  <div
-                    class={'h-5px bg-green'}
-                    style={{ width: `${progress}%`, transitionDuration: '200ms' }}
-                  />
+        <div class="relative">
+          <div
+            class={[
+              'absolute inset-0px col z-1 duration-200',
+              controls.show || !isPlaying ? 'opacity-100' : 'opacity-0',
+            ]}
+            style={{
+              background:
+                'linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0) 100%)',
+            }}
+          >
+            <div
+              class={'relative flex-1'}
+              onMouseMove={() => {
+                const now = Date.now();
+
+                controls.show = true;
+                controls.timeSinceMouseMoved = now;
+
+                setTimeout(() => {
+                  if (controls.timeSinceMouseMoved === now) {
+                    controls.show = false;
+                  }
+                }, 2000);
+              }}
+            >
+              <div class="absolute inset-0px col-center" onClick:stop={() => togglePlay()}>
+                <div
+                  if={isPlaying}
+                  class="text-5em"
+                  style={{
+                    animation: '0.75s 1 player-toggle-play-animation forwards',
+                  }}
+                >
+                  <Icon icon={'play'} />
                 </div>
-                <div class="row justify-between p-x-3 p-t-2">
-                  <div class={'row gap-3'}>
-                    <div>p</div>
-                    <div onClick={togglePlay}>{isPlaying ? 'pause' : 'play'}</div>
-                    <div>n</div>
-                    <div>v</div>
-                    <div>
-                      {currentTime} / {duration}
+                <div
+                  else
+                  class="text-5em"
+                  style={{
+                    animation: '0.75s 1 player-toggle-play-animation forwards',
+                  }}
+                >
+                  <Icon icon={'pause'} />
+                </div>
+              </div>
+              <div
+                class={['absolute m-t-auto bottom-0 right-0 left-0 p-5 col']}
+                onClick:stop={() => {}}
+              >
+                <div class="h-8px">
+                  <div class={'relative h-4px hover:h-8px bg-zinc-800'} onClick={changeTime}>
+                    <>
+                      {buffered.map((it) => (
+                        <div
+                          class={'absolute h-full bg-zinc-600 z-1 duration-200'}
+                          style={{
+                            left: `${(it.from / duration) * 100}%`,
+                            width: `${((it.to - it.from) / duration) * 100}%`,
+                          }}
+                        />
+                      ))}
+                    </>
+                    <div class={'absolute h-full bg-green z-2'} style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+                <div class="row justify-between p-x-3 p-t-3">
+                  <div class={'row-center gap-3'}>
+                    <Icon icon="skip-previous" size="1.5em" />
+                    <Icon
+                      icon={isPlaying ? 'pause' : 'play'}
+                      size="1.5em"
+                      onClick={() => togglePlay()}
+                    />
+                    <Icon icon="skip-next" size="1.5em" />
+                    <div class="row-center gap-2">
+                      <Icon
+                        icon={
+                          muted
+                            ? 'volume-mute'
+                            : controls.volume < 0.33
+                            ? 'volume-low'
+                            : controls.volume < 0.66
+                            ? 'volume-medium'
+                            : 'volume-high'
+                        }
+                        size="1.5em"
+                        onClick={() => setMuted(!muted)}
+                      />
+                      <VolumeSlider
+                        value={controls.volume}
+                        max={1}
+                        min={0}
+                        onChange={(v) => {
+                          controls.volume = v;
+                        }}
+                      />
+                    </div>
+                    <div class="text-0.8em">
+                      {formatTime(currentTime)} / {formatTime(duration)}
                     </div>
                   </div>
-                  <div class={'row gap-3'}>
-                    <div>auto</div>
-                    <div>settings</div>
-                    <div>mini</div>
-                    <div>theatre</div>
-                    <div>full</div>
+                  <div class={'row-center gap-3'}>
+                    <div class="m-r-50px">
+                      <Icon icon="play-circle-outline" size="1.5em" />
+                    </div>
+                    <Icon icon="cog" size="1.5em" />
+                    <Icon icon="dock-window" size="1.5em" />
+                    <Icon icon="panorama-wide-angle-outline" size="1.5em" />
+                    <Icon icon="fullscreen" size="1.5em" />
                   </div>
                 </div>
               </div>
@@ -75,19 +222,14 @@ export default () => {
           </div>
           <video
             class={'w-100%'}
-            paused={true}
             onCanPlay={() => setCanPlay(true)}
             ref={videoPlayerElement}
-            onPlay={(e) => {
-              console.log(e);
-            }}
             onTimeUpdate={(e) => {
               setCurrentTime(e.currentTarget.currentTime);
-              setPlaying(true);
             }}
-            onPause={() => {
-              setPlaying(false);
-            }}
+            muted={muted}
+            onProgress={onProgress}
+            volume={controls.volume}
           >
             <source src={`http://localhost:8080/videos/watch/${id}`} type={'video/mp4'}></source>
           </video>
@@ -110,11 +252,11 @@ export default () => {
             </div>
             <div class="row gap-2">
               <GButton class="row-center gap-2 p-x-7 rounded-20px text-md">
-                <Icon icon="thumb-up" class="w-10px h-10px" />
+                {/* <Icon icon="thumb-up" class="w-10px h-10px" /> */}
                 <span>12K</span>
               </GButton>
               <GButton class="row-center gap-2 p-x-7 rounded-20px text-md">
-                <Icon icon="thumb-down" />
+                {/* <Icon icon="thumb-down" /> */}
                 <span>1K</span>
               </GButton>
               <GButton class="p-x-5 rounded-20px">Download</GButton>
@@ -143,7 +285,7 @@ export default () => {
           </div>
         </div>
       </div>
-      <div class={'w-450px bg-blue'}></div>
+      <div class={'w-450px'}></div>
     </div>
   );
 };

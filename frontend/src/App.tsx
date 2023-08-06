@@ -20,6 +20,7 @@ export default () => {
       <UserProvider>
         <div class="p-t-[var(--nav-bar-height)] col flex-1">
           <AppWrapper />
+          <span class="hidden i-mdi-youtube" size="1.5em" />
         </div>
       </UserProvider>
     </UIProvider>
