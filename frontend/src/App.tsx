@@ -18,7 +18,9 @@ export default () => {
   return (
     <UIProvider>
       <UserProvider>
-        <AppWrapper />
+        <div class="p-t-[var(--nav-bar-height)] col flex-1">
+          <AppWrapper />
+        </div>
       </UserProvider>
     </UIProvider>
   );

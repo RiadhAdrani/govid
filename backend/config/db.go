@@ -2,6 +2,7 @@ package config
 
 import (
 	"backend/schema"
+	"log"
 	"os"
 
 	"gorm.io/driver/postgres"
@@ -39,18 +40,19 @@ func ConnectDB() {
 	// Create the database connection string
 	connectionString := "postgres://" + dbAdmin + ":" + dbAdminPassword + "@" + hostname + ":" + port + "/" + dbname
 
+	log.Println(connectionString)
+
 	db, err := gorm.Open(postgres.Open(connectionString))
 
 	if err != nil {
 		panic(err)
 	}
 
-	db.AutoMigrate(&schema.User{})
-
 	DB = db
 
 }
 
 func SyncDB() {
+	DB.AutoMigrate(&schema.Video{})
 	DB.AutoMigrate(&schema.User{})
 }

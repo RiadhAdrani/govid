@@ -12,6 +12,8 @@ import UserIcon from './User.icon';
 import SettingsIcon from './Settings.icon';
 import StudioIcon from './Studio.icon';
 import SignoutIcon from './Signout.icon';
+import ThumbUp from './ThumbUp';
+import ThumbDown from './ThumbDown';
 
 export interface SVGIconProps extends HTMLElementProps<HTMLDivElement> {
   icon: IconName;
@@ -31,6 +33,8 @@ const IconsList = {
   settings: <SettingsIcon />,
   studio: <StudioIcon />,
   signout: <SignoutIcon />,
+  'thumb-up': <ThumbUp />,
+  'thumb-down': <ThumbDown />,
 };
 
 export type IconName = keyof typeof IconsList;
