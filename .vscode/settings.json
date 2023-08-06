@@ -1,0 +1,13 @@
+{
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "localhost",
+      "driver": "PostgreSQL",
+      "username": "postgres",
+      "database": "govid_db",
+      "name": "postgres",
+      "connectString": "postgres://postgres:postgres@localhost:5432/postgres"
+    }
+  ]
+}

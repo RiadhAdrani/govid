@@ -10,7 +10,7 @@ const NavBar = (_: PropsWithUtility<{}>) => {
 
   return (
     <>
-      <div class="row fixed top-0px left-0px right-0px items-center justify-stretch h-[var(--nav-bar-height)] p-x-6">
+      <div class="row fixed top-0px left-0px right-0px items-center justify-stretch h-[var(--nav-bar-height)] p-x-6 bg-zinc-900">
         <div class="row-center justify-start gap-5 flex-1">
           <button class={'icon-btn'}>
             <Icon icon="burger" />
@@ -38,8 +38,8 @@ const NavBar = (_: PropsWithUtility<{}>) => {
           </button>
         </div>
         <div class="row-center justify-end gap-4 flex-1">
-          <CreateButton />
-          <NotificationButton />
+          <CreateButton if={isAuthenticated} />
+          <NotificationButton if={isAuthenticated} />
           <UserButton if={isAuthenticated} />
           <a else href="/sign-in">
             <button class="icon-btn row-center aspect-auto rounded-15px p-x-5 p-y-1 gap-2 border border-solid border-1px border-blue-400 text-blue-400">

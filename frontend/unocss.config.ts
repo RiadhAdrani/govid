@@ -1,6 +1,5 @@
 // uno.config.ts
-import { defineConfig, presetUno } from 'unocss';
-import { presetWebFonts } from 'unocss';
+import { defineConfig, presetUno, presetWebFonts, presetIcons } from 'unocss';
 
 //  const join = (array: Array<string>): string => `@apply ${array.join(' ')}`;
 
@@ -12,6 +11,7 @@ export default defineConfig({
         sans: 'Roboto',
       },
     }),
+    presetIcons(),
     presetUno(),
   ],
   shortcuts: [

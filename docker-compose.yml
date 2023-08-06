@@ -12,20 +12,19 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=govid
     ports:
-      - "5432:5432"
+      - '5432:5432'
 
   pgadmin:
     image: dpage/pgadmin4
     ports:
-      - "5050:80"
+      - '5050:80'
     environment:
-      PGADMIN_DEFAULT_EMAIL: "root@root.root"
-      PGADMIN_DEFAULT_PASSWORD: "root"
+      PGADMIN_DEFAULT_EMAIL: 'root@root.root'
+      PGADMIN_DEFAULT_PASSWORD: 'root'
     container_name: pgadmin
     depends_on:
       - db
 
-      
   redis:
     stop_grace_period: 1s
     # network_mode: host
@@ -38,7 +37,7 @@ services:
       - 6379
     command: ['redis-server', '--loglevel', 'warning']
     ports:
-      - "6379:6379"
+      - '6379:6379'
   api:
     build:
       context: ./backend
@@ -51,13 +50,12 @@ services:
     working_dir: /app
     volumes:
       - ./backend:/app
-      - ~/public:/app/public
     command: ['air']
     expose:
       - 8080
     ports:
-      - "8080:8080"
-      
+      - '8080:8080'
+
   app:
     build:
       context: ./frontend
@@ -72,8 +70,7 @@ services:
     expose:
       - 3000
     ports:
-      - "3000:3000"
-      
+      - '3000:3000'
 
 volumes:
   govid_db_data:

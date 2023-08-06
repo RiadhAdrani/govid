@@ -1,4 +1,4 @@
-import { DOMEvent, useContext, useReactive } from '@riadh-adrani/ruvy';
+import { DOMEvent, navigate, useContext, useEffect, useReactive } from '@riadh-adrani/ruvy';
 import { SigninBody } from '../types/user';
 import { UserContext } from '../context/User.context';
 import GButton from '../components/Button/G.Button';
@@ -6,8 +6,8 @@ import GInput from '../components/Input/G.Input';
 import { UIContext } from '../context/UI.context';
 
 export default () => {
-  const { toggleLoader, showToast } = useContext(UIContext);
-  const { signin } = useContext(UserContext);
+  const { toggleLoader } = useContext(UIContext);
+  const { signin, isAuthenticated } = useContext(UserContext);
 
   const form = useReactive<SigninBody>({
     email: '',
@@ -21,19 +21,14 @@ export default () => {
   const onSignInClick = () => {
     toggleLoader(true);
 
-    signin({ ...form })
-      .then(() => {
-        // if success, we redirect to signin
-        // bruh
-        showToast({ component: 'Signed in successfully', duration: 3000, type: 'success' });
-      })
-      .catch(() => {
-        showToast({ component: 'Unable to Signin', duration: 3000, type: 'danger' });
-      })
-      .finally(() => {
-        toggleLoader(false);
-      });
+    signin({ ...form });
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate({ name: 'Home' });
+    }
+  }, isAuthenticated);
 
   return (
     <>

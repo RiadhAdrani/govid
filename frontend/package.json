@@ -16,7 +16,7 @@
     "vite": "^4.3.9"
   },
   "dependencies": {
-    "@riadh-adrani/ruvy": "^0.4.3",
+    "@riadh-adrani/ruvy": "^0.4.9",
     "@riadh-adrani/utils": "^0.42.2",
     "@types/js-cookie": "^3.0.3",
     "axios": "^1.4.0",

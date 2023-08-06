@@ -6,6 +6,6 @@ import ROUTES from './router/routes';
 
 const hostElement = document.querySelector<HTMLDivElement>('#app')!;
 
-createRouter(ROUTES);
+createRouter(ROUTES, { transformTitle: (title) => `${title} - Govid` });
 
 mountApp({ hostElement, callback: App });

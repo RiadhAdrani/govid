@@ -29,7 +29,7 @@ export const UserContext = createContext<IUserContext>({
 });
 
 export const UserProvider = ({ children }: PropsWithUtility<{}>) => {
-  const { toggleLoader } = useContext(UIContext);
+  const { toggleLoader, showToast } = useContext(UIContext);
   const [user, setUser] = useState<PublicUser | undefined>({
     email: 'riadh@adrani.com',
     firstName: 'Adrani',
@@ -48,17 +48,28 @@ export const UserProvider = ({ children }: PropsWithUtility<{}>) => {
       // show a toast saying that token expired or invalid
       toggleLoader(false);
 
+      showToast({
+        component: 'No token found, please sign in again',
+        duration: 3000,
+        type: 'danger',
+      });
+
       return;
     }
 
-    const res = await useApi.get<{ user: PublicUser }>('/users/me');
+    try {
+      const res = await useApi.get<{ user: PublicUser }>('/users/me');
 
-    if (res?.data) {
       // redirect user to home page
       setUser(res.data.user);
-      navigate('/');
-    } else {
-      // failed to sign in
+
+      showToast({ component: 'Signed in successfully', duration: 3000, type: 'success' });
+    } catch (error) {
+      showToast({
+        component: 'Unable to verify token',
+        duration: 3000,
+        type: 'danger',
+      });
     }
 
     // hide loader
@@ -68,14 +79,22 @@ export const UserProvider = ({ children }: PropsWithUtility<{}>) => {
   const isAuthenticated = useMemo(() => user !== undefined, user);
 
   const signin: SigninFunction = async (body) => {
-    const res = await useApi.post<{ token: string }>('/signin', body);
+    try {
+      const res = await useApi.post<{ token: string }>('/signin', body);
 
-    if (res?.data) {
-      const token = res.data.token;
+      if (res?.data.token) {
+        const token = res.data.token;
 
-      Cookies.set('token', token);
+        Cookies.set('token', token);
 
-      getUserData();
+        await getUserData();
+      } else {
+        showToast({ component: 'Unable to retrieve token', duration: 3000, type: 'danger' });
+      }
+    } catch (error) {
+      showToast({ component: 'Unable to Signin', duration: 3000, type: 'danger' });
+    } finally {
+      toggleLoader(false);
     }
   };
 

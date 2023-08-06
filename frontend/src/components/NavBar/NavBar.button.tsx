@@ -12,7 +12,7 @@ export type CreateButtonProps = PropsWithUtility<HTMLElementProps<HTMLButtonElem
 
 export default (props: PropsWithUtility<NavBarButtonProps>) => {
   const [show, setShow] = useState(false);
-  const ref = useRef<HTMLElement>();
+  const ref = useRef<HTMLDivElement>();
 
   useClickOutside(() => setShow(false), ref.value!);
 
