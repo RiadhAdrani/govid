@@ -91,10 +91,7 @@ export const UIProvider = ({ children }: { children?: unknown }) => {
     >
       {children}
       <Portal container={container}>
-        <div
-          if={showLoader}
-          class={[`z-${loaderIndex}`, 'fixed inset-0px col-center bg-[#0e0e0edd]']}
-        >
+        <div if={false} class={[`z-${loaderIndex}`, 'fixed inset-0px col-center bg-[#0e0e0edd]']}>
           <GoogleSpinner />
         </div>
         <div

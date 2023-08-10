@@ -38,7 +38,9 @@ func CreateVideo(c *gin.Context) {
 		return
 	}
 
-	title := strings.TrimSuffix(file.Filename, path.Ext(file.Filename))
+	extension := path.Ext(file.Filename)
+
+	title := strings.TrimSuffix(file.Filename, extension)
 
 	video := schema.Video{
 		Title:    title,
@@ -57,12 +59,41 @@ func CreateVideo(c *gin.Context) {
 		return
 	}
 
-	UploadVideo(c)
+	filename := fmt.Sprintf("%d%s", video.Id, extension)
+
+	UploadVideo(c, filename)
+
+	video.Filename = filename
+
+	config.DB.Save(&video)
 
 	c.JSON(http.StatusOK, gin.H{"data": video})
 }
 
-func UploadVideo(c *gin.Context) {
+func GetVideo(c *gin.Context) {
+	// convert id to int
+	id, err := strconv.Atoi(c.Param("id"))
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch video"})
+		return
+	}
+
+	var video schema.Video
+
+	// check if video already exists
+	config.DB.Preload("Owner").First(&video, id)
+
+	if video.Id == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Video not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": video})
+}
+
+func UploadVideo(c *gin.Context, filename string) {
+
 	// single file
 	file, _ := c.FormFile("file")
 
@@ -72,7 +103,7 @@ func UploadVideo(c *gin.Context) {
 		c.String(http.StatusOK, "Upload failed")
 	}
 
-	dst := fmt.Sprintf("%s/public/watch/%s", dir, file.Filename)
+	dst := fmt.Sprintf("%s/public/watch/%s", dir, filename)
 
 	// Upload the file to specific dst.
 	c.SaveUploadedFile(file, dst)
@@ -124,6 +155,8 @@ func WatchVideo(c *gin.Context) {
 	}
 
 	// Set the content type header
+	// allow streamin ranges
+	c.Header("Accept-Ranges", "bytes")
 	c.Header("Content-Type", "video/mp4")
 	c.Header("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
 

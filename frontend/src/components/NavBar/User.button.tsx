@@ -14,19 +14,19 @@ export default () => {
     href?: string;
     topDivider?: boolean;
   }> = [
-    { icon: 'user', label: 'Your channel', topDivider: true },
-    { icon: 'video', label: 'Studio' },
-    { icon: 'cog', label: 'Settings' },
-    { icon: 'logout', label: 'Sign out', onClick: signout, topDivider: true },
+    { icon: 'i-mdi-user', label: 'Your channel', topDivider: true },
+    { icon: 'i-mdi-video', label: 'Studio' },
+    { icon: 'i-mdi-cog', label: 'Settings' },
+    { icon: 'i-mdi-logout', label: 'Sign out', onClick: signout, topDivider: true },
   ];
 
   return (
     <NavBarButton
-      icon="user"
+      icon="i-mdi-user"
       menu={(close) => (
         <div class="w-300px col p-y-2">
           <div class="row items-center gap-5 p-4">
-            <Icon icon={'user'} class="w-50px h-50px" />
+            <Icon icon={'i-mdi-user'} class="w-50px h-50px" />
             <div class="col gap-1 items-start">
               <p>
                 {user!.firstName} {user!.lastName}

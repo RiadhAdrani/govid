@@ -1,19 +1,11 @@
-import { joinClasses, useMemo } from '@riadh-adrani/ruvy';
+import { joinClasses } from '@riadh-adrani/ruvy';
 
-export interface IconProps extends HTMLElementProps<HTMLDivElement> {
+export interface IconProps extends HTMLElementProps {
   icon: string;
   light?: boolean;
   size?: string;
 }
 
 export default (props: IconProps) => {
-  const prefix = useMemo(() => (props.light ? 'mdi-light' : 'mdi'), props.light);
-
-  return (
-    <div
-      {...props}
-      if
-      class={joinClasses(`text-${props.size ?? '1em'}`, props.class, `i-${prefix}-${props.icon}`)}
-    />
-  );
+  return <i {...props} class={`text-1em ${props.icon} ${joinClasses(props.class)}`} />;
 };

@@ -54,7 +54,9 @@ export default (props: SliderProps) => {
 
     const { width } = ref.value.getBoundingClientRect();
 
-    return clamp(0, width * props.value, width - 15);
+    const value = clamp(0, width * props.value, width - 15);
+
+    return value;
   }, [ref.value, props.value]);
 
   const onMouseDown = useCallback(() => {
@@ -62,7 +64,7 @@ export default (props: SliderProps) => {
   });
 
   return (
-    <div ref={ref} class={['h-3px bg-zinc-700 relative row', `w-${props.width ?? '75px'}`]}>
+    <div ref={ref} class={['h-3px bg-zinc-700 relative row', `w-75px`]}>
       <div
         class="absolute h-15px w-15px bg-white rounded-50% self-center"
         style={{ left: `${position}px` }}

@@ -1,11 +1,16 @@
 // uno.config.ts
-import { defineConfig, presetUno, presetWebFonts } from 'unocss';
-
-import presetIcons from '@unocss/preset-icons';
+import {
+  defineConfig,
+  presetUno,
+  presetWebFonts,
+  presetIcons,
+  presetWind,
+  presetMini,
+} from 'unocss';
 
 export default defineConfig({
   presets: [
-    presetUno({}),
+    presetWind(),
     presetWebFonts({
       provider: 'google',
       fonts: {

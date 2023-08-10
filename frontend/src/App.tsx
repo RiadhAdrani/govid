@@ -2,6 +2,7 @@ import { Outlet, useContext } from '@riadh-adrani/ruvy';
 import NavBar from './components/NavBar/NavBar';
 import { UIContext, UIProvider } from './context/UI.context';
 import { UserProvider } from './context/User.context';
+import { PlayerProvider } from './context/Player.context';
 
 const AppWrapper = () => {
   const { showTopNavBar } = useContext(UIContext);
@@ -17,12 +18,13 @@ const AppWrapper = () => {
 export default () => {
   return (
     <UIProvider>
-      <UserProvider>
-        <div class="p-t-[var(--nav-bar-height)] col flex-1">
-          <AppWrapper />
-          <span class="hidden i-mdi-youtube" size="1.5em" />
-        </div>
-      </UserProvider>
+      <PlayerProvider>
+        <UserProvider>
+          <div class="p-t-[var(--nav-bar-height)] col flex-1">
+            <AppWrapper />
+          </div>
+        </UserProvider>
+      </PlayerProvider>
     </UIProvider>
   );
 };
