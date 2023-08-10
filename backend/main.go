@@ -39,6 +39,7 @@ func main() {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowCredentials = true
 	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	// corsConfig.AllowHeaders = []string{"Accept-Ranges: bytes"}
 	corsConfig.AddAllowMethods("OPTIONS")
 
 	router.Use(cors.New(corsConfig))

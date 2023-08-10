@@ -38,10 +38,10 @@ export default ({ component, duration, remove, type }: PropsWithUtility<Notifica
       <div class={'overflow-hidden'}>
         <div class={'bg-zinc-800 p-x-4 p-y-3 rounded row items-start gap-2'}>
           <div class={'w-25px h-25px row-center'} switch={type}>
-            <Icon case={'success'} icon="check" />
-            <Icon case={'danger'} icon="bell" />
-            <Icon case={'warning'} icon="search" />
-            <Icon case:default icon="user" />
+            <Icon case={'success'} icon="i-mdi-check" />
+            <Icon case={'danger'} icon="i-mdi-bell" />
+            <Icon case={'warning'} icon="i-mdi-search" />
+            <Icon case:default icon="i-mdi-user" />
           </div>
           {component}
         </div>

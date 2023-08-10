@@ -8,7 +8,7 @@ import (
 
 // ! camelCase json fields !
 type Video struct {
-	Id          int    `json:"id" gorm:"primary_key"`
+	Id          int    `json:"id" gorm:"primaryKey"`
 	Title       string `json:"title" gorm:"not null"`
 	Description string `json:"description" gorm:"not null"`
 	Public      bool   `json:"privacy" gorm:"not null"`

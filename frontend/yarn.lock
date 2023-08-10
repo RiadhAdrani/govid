@@ -138,13 +138,6 @@
   resolved "https://registry.yarnpkg.com/@esbuild/win32-x64/-/win32-x64-0.18.18.tgz#914c007ab1dbd28ca84e79ee666adeee6ccf92b4"
   integrity sha512-eTSg/gC3p3tdjj4roDhe5xu94l1s2jMazP8u2FsYO8SEKvSpPOO71EucprDn/IuErDPvTFUhV9lTw5z5WJCRKQ==
 
-"@iconify-json/carbon@^1.1.19":
-  version "1.1.19"
-  resolved "https://registry.yarnpkg.com/@iconify-json/carbon/-/carbon-1.1.19.tgz#829470b821352ce1cc400c93d23e659a8372e0c0"
-  integrity sha512-4obFv2J5L/bIgXCKnW8Xkly47dGgPH+xbP3NZ6DRYznc8ykAo+X5z3WSAW5/ZKO9cKZzRcOnNS6DYofOZZbRCA==
-  dependencies:
-    "@iconify/types" "*"
-
 "@iconify-json/mdi@^1.1.54":
   version "1.1.54"
   resolved "https://registry.yarnpkg.com/@iconify-json/mdi/-/mdi-1.1.54.tgz#343477417c15fceeaf0f32012d58a4a8d9791786"
@@ -255,10 +248,10 @@
   resolved "https://registry.yarnpkg.com/@riadh-adrani/obj-utils/-/obj-utils-1.0.2.tgz#3b48a857979907d5d8e02b89306392c9e8e044bb"
   integrity sha512-seQu8jNtFnFR5EzwAaRbJz2hGvSnmu7JopROeTrFnoOlp0hDxX3ZZtXWW+Ku1+m6neQ8yUiRMq3dNJINzs8RYg==
 
-"@riadh-adrani/ruvy@^0.4.9":
-  version "0.4.9"
-  resolved "https://registry.yarnpkg.com/@riadh-adrani/ruvy/-/ruvy-0.4.9.tgz#c7dd87005ac538f046d91a5bc593b10679fad083"
-  integrity sha512-6CTX4ftxrErG4h/ZAaOUbSlO9l5atzLL+BNstdndZ5k0ZySJI3NnrTdq8mhgvCzuuAZt7dcNPwCI31I3h2QhOw==
+"@riadh-adrani/ruvy@^0.4.10":
+  version "0.4.10"
+  resolved "https://registry.yarnpkg.com/@riadh-adrani/ruvy/-/ruvy-0.4.10.tgz#3f629266ba5b61288253233e8e85ff6ff58eb712"
+  integrity sha512-Bp4k+QQTWgpMSGygGVIvvX+lAc1LOEUuKeqUF7DS6YQCxoHzOD72t1aS28kf8Loo9wnAc/UvmVp1ZOWT03tLCg==
   dependencies:
     "@riadh-adrani/array-utils" "1.0.2"
     "@riadh-adrani/async-utils" "1.0.2"
@@ -387,7 +380,7 @@
   dependencies:
     "@unocss/core" "0.54.1"
 
-"@unocss/preset-icons@0.54.1", "@unocss/preset-icons@^0.54.1":
+"@unocss/preset-icons@0.54.1":
   version "0.54.1"
   resolved "https://registry.yarnpkg.com/@unocss/preset-icons/-/preset-icons-0.54.1.tgz#cb7be751cf2ab8ccae97a9596d4490f0837ec57d"
   integrity sha512-H3VloE4fAs9ufK7FDsG5mUEjNneboY2xgrtdOxDoN33NsapNKTaEmMRjV/9Tz9IdrT2WOEe+eb4qwDzwKpHJlw==
