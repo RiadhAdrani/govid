@@ -4,7 +4,7 @@ import {
   PropsWithUtility,
   batch,
   createContext,
-  useContext,
+  navigate,
   useEffect,
   useId,
   useMemo,
@@ -14,7 +14,6 @@ import {
 import { Video } from '../types/video';
 import useApi from '../utils/api';
 import Player from '../components/Player/Player';
-import { UIContext } from './UI.context';
 
 export interface UseRefData<T = unknown> {
   value: T;
@@ -91,7 +90,6 @@ export const PlayerContext = createContext<IPlayerContext>({
 });
 
 export const PlayerProvider = (props: PropsWithUtility<{}>) => {
-  const { showToast } = useContext(UIContext);
   const [videoElement, setVideElement] = useState<HTMLVideoElement | undefined>(undefined);
 
   const [container, setContainer] = useState<HTMLElement | undefined>(undefined);
@@ -105,7 +103,7 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
     show: false,
     volume: 1,
     muted: false,
-    mini: true,
+    mini: false,
     fullscreen: false,
     theatre: false,
     speed: 1,
@@ -205,10 +203,11 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
 
     const target = e.currentTarget;
 
-    const width = target.getBoundingClientRect().width;
-    const x = e.offsetX;
+    const { left, right } = target.getBoundingClientRect();
 
-    const percentage = x / width;
+    const x = e.clientX;
+
+    const percentage = (x - left) / (right - left);
 
     videoElement.currentTime = percentage * duration;
   };
@@ -233,10 +232,18 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
     }
   });
 
-  const miniPlayerToggleDeps = [controls.mini];
+  const miniPlayerToggleDeps = [controls.mini, id];
 
   useEffect(() => {
+    if (!id) return;
+
     const current = controls.mini;
+
+    if (current) {
+      navigate('/');
+    } else {
+      navigate(`/watch?v=${id}`);
+    }
 
     setTimeout(() => {
       if (current === controls.mini) {
@@ -246,15 +253,9 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
 
         if (videoEl) {
           setContainer(videoEl);
-        } else {
-          showToast({
-            component: 'something went wrong when trying to switch to watch page',
-            duration: 3000,
-            type: 'info',
-          });
         }
       }
-    }, 50);
+    }, 25);
 
     if (!miniPlayerId) {
     }
