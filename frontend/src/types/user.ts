@@ -4,6 +4,7 @@ export interface User {
   lastName: string;
   email: string;
   password: string;
+  subCount: number;
 }
 
 export type PublicUser = Omit<User, 'password'>;

@@ -18,13 +18,13 @@ const AppWrapper = () => {
 export default () => {
   return (
     <UIProvider>
-      <PlayerProvider>
-        <UserProvider>
+      <UserProvider>
+        <PlayerProvider>
           <div class="p-t-[var(--nav-bar-height)] col flex-1">
             <AppWrapper />
           </div>
-        </UserProvider>
-      </PlayerProvider>
+        </PlayerProvider>
+      </UserProvider>
     </UIProvider>
   );
 };

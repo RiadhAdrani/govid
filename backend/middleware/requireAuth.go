@@ -11,13 +11,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func RequireAuth(c *gin.Context) {
+func GetUserFromContext(c *gin.Context) schema.User {
+	user := schema.User{}
+
 	// Get the token off request
 	tokenString, err := c.Cookie("token")
 
 	if err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
+		return user
 	}
 
 	// decode and validate
@@ -33,37 +34,42 @@ func RequireAuth(c *gin.Context) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 
-	if ok {
-		// check the exp
-		parsedTime, err := time.Parse(time.RFC3339Nano, claims["exp"].(string))
-		if err != nil {
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-
-		if float64(time.Now().Unix()) > float64(parsedTime.Unix()) {
-			c.AbortWithStatus(http.StatusUnauthorized)
-		}
-
-		// find the user with token
-		var user schema.User
-		config.DB.First(&user, claims["sub"])
-
-		if user.Id == 0 {
-			c.AbortWithStatus(http.StatusNotFound)
-		}
-
-		// remove password
-		user.Password = ""
-
-		// attach to the request
-		c.Set("user", user)
-
-		// continue
-		c.Next()
-
-	} else {
-		c.AbortWithStatus(http.StatusUnauthorized)
+	if !ok {
+		return user
 	}
+
+	// check the exp
+	parsedTime, err := time.Parse(time.RFC3339Nano, claims["exp"].(string))
+	if err != nil {
+		return user
+	}
+
+	if float64(time.Now().Unix()) > float64(parsedTime.Unix()) {
+		return user
+	}
+
+	config.DB.First(&user, claims["sub"])
+
+	if user.Id == 0 {
+		return user
+	}
+
+	return user
+
+}
+
+func RequireAuth(c *gin.Context) {
+	user := GetUserFromContext(c)
+
+	if user.Id == 0 {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	// attach to the request
+	c.Set("user", user)
+
+	// continue
+	c.Next()
 
 }
