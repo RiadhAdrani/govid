@@ -3,9 +3,13 @@ import GButton from '../components/Button/G.Button';
 
 import Icon from '../components/Icon/Icon';
 import { PlayerContext } from '../context/Player.context';
+import useApi from '../utils/api';
+import { UserContext } from '../context/User.context';
 
 export default () => {
-  const { watchElementId, setId } = useContext(PlayerContext);
+  const { isAuthenticated } = useContext(UserContext);
+  const { watchElementId, setId, toggleMiniPlayer, data, toggleVideoLike, toggleVideoDislike } =
+    useContext(PlayerContext);
 
   const { v } = getSearchParams();
 
@@ -13,7 +17,17 @@ export default () => {
     if (v) {
       setId(v);
     }
+
+    toggleMiniPlayer(false);
   }, v);
+
+  const onSubscribeClick = () => {
+    if (!data || !isAuthenticated) return;
+
+    useApi.post(`/users/${data.owner.id}/subscribe`).then((it) => {
+      console.log(it);
+    });
+  };
 
   const [expanded, setExpanded] = useState(false);
 
@@ -22,7 +36,7 @@ export default () => {
       <div class="flex-col flex-1 gap-3">
         <div id={watchElementId} class="relative w-100% aspect-video bg-zinc-900"></div>
         <div class="text-left col gap-4 m-t-2">
-          <h3 class="m-0">Some video title</h3>
+          <h3 class="m-0">{data?.title}</h3>
           <div class="row items-center justify-between">
             <div class="row gap-3">
               <img
@@ -30,24 +44,39 @@ export default () => {
                 class="h-50px w-50px rounded-50%"
               />
               <div class="col self-center">
-                <p class="text-sm">Channel name</p>
-                <p class="text-xs">9.99M subscribers</p>
+                <p class="text-sm">
+                  <span>{data?.owner.firstName}</span>
+                  <span> </span>
+                  <span>{data?.owner.lastName}</span>
+                </p>
+                <p class="text-xs">
+                  <span>{data?.owner.subCount}</span>
+                  <span> </span>
+                  <span>subscribers</span>
+                </p>
               </div>
-              <GButton class="text-sm p-x-5 self-center rounded-20px p-y-0 bg-white text-[color:black]">
+              <GButton
+                class="text-sm p-x-5 self-center rounded-20px p-y-0 bg-white text-[color:black]"
+                onClick={onSubscribeClick}
+              >
                 Subscribe
               </GButton>
             </div>
             <div class="row gap-2">
-              <GButton class="row-center gap-2 p-x-7 rounded-20px text-md">
-                <Icon icon="i-mdi-thumb-up" class="w-10px h-10px" />
-                <span>12K</span>
+              <GButton
+                class="row-center gap-2 p-x-7 rounded-20px text-md"
+                onClick={() => toggleVideoLike(true)}
+              >
+                <Icon icon="i-mdi-thumb-up" class="text-md" />
+                <span>{data?.likesCount}</span>
               </GButton>
-              <GButton class="row-center gap-2 p-x-7 rounded-20px text-md">
+              <GButton
+                class="row-center gap-2 p-x-7 rounded-20px text-md"
+                onClick={() => toggleVideoDislike(true)}
+              >
                 <Icon icon="i-mdi-thumb-down" />
-                <span>1K</span>
+                <span>{data?.dislikesCount}</span>
               </GButton>
-              <GButton class="p-x-5 rounded-20px">Download</GButton>
-              <GButton class="p-x-5 rounded-20px">Share</GButton>
               <GButton class="p-x-5 rounded-20px">
                 <span class="i-mdi-light-home"></span> Save
               </GButton>
@@ -62,8 +91,8 @@ export default () => {
               }}
             >
               <div class="relative col gap-1 overflow-hidden">
-                <p>136,915 views Jul 7, 2023</p>
-                <p class="text-sm text-clip">Khouloud is stupid</p>
+                <p>136,915 views | {new Date(data?.createdAt ?? '').toDateString()}</p>
+                <p class="text-sm text-clip">{data?.description}</p>
               </div>
             </div>
             <button class="self-start p-y-1 p-x-3" onClick={() => setExpanded(!expanded)}>

@@ -1,7 +1,4 @@
-export interface ApiError {
+export interface ApiResponse<T = undefined> {
+  data: T | undefined;
   error: string;
-}
-
-export interface ApiData<T = unknown> {
-  data: T;
 }

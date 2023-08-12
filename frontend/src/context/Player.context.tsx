@@ -5,6 +5,7 @@ import {
   batch,
   createContext,
   navigate,
+  useContext,
   useEffect,
   useId,
   useMemo,
@@ -14,6 +15,8 @@ import {
 import { Video } from '../types/video';
 import useApi from '../utils/api';
 import Player from '../components/Player/Player';
+import { UserContext } from './User.context';
+import { ApiResponse } from '../types/api';
 
 export interface UseRefData<T = unknown> {
   value: T;
@@ -56,6 +59,9 @@ export interface IPlayerContext {
   onTimeUpdated: () => void;
   seekTime: DOMEventHandler<MouseEvent, HTMLElement>;
   toggleMiniPlayer: (v?: boolean) => void;
+
+  toggleVideoLike: (v?: boolean) => void;
+  toggleVideoDislike: (v?: boolean) => void;
 }
 
 export const PlayerContext = createContext<IPlayerContext>({
@@ -87,9 +93,13 @@ export const PlayerContext = createContext<IPlayerContext>({
   onTimeUpdated: () => 0,
   seekTime: () => 0,
   toggleMiniPlayer: () => 0,
+  toggleVideoDislike: () => 0,
+  toggleVideoLike: () => 0,
 });
 
 export const PlayerProvider = (props: PropsWithUtility<{}>) => {
+  const { isAuthenticated } = useContext(UserContext);
+
   const [videoElement, setVideElement] = useState<HTMLVideoElement | undefined>(undefined);
 
   const [container, setContainer] = useState<HTMLElement | undefined>(undefined);
@@ -218,6 +228,47 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
     controls.mini = typeof v === 'boolean' ? v : !controls.mini;
   };
 
+  const toggleVideoRating = (isLike: boolean, rate: boolean) => {
+    const method = rate ? 'post' : 'delete';
+    const url = `/videos/${id}/${isLike ? 'like' : 'dislike'}`;
+
+    useApi[method]<ApiResponse<Video>>(url).then((res) => {
+      if (res.data.data) {
+        setData(res.data.data);
+      }
+    });
+  };
+
+  const toggleVideoLike: IPlayerContext['toggleVideoLike'] = () => {
+    if (!id || !data) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      alert('cannot perform action while signed out !');
+      return;
+    }
+
+    const action = !data.isLiked;
+
+    toggleVideoRating(true, action);
+  };
+
+  const toggleVideoDislike: IPlayerContext['toggleVideoDislike'] = () => {
+    if (!id || !data) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      alert('cannot perform action while signed out !');
+      return;
+    }
+
+    const action = !data.isDisliked;
+
+    toggleVideoRating(false, action);
+  };
+
   useEffect(() => {
     const miniEl = document.querySelector<HTMLElement>(`#${miniPlayerId}`);
     setTimeout(() => {
@@ -238,9 +289,16 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
     if (!id) return;
 
     const current = controls.mini;
+    const playing = !paused;
 
     if (current) {
       navigate('/');
+
+      if (playing) {
+        setTimeout(() => {
+          togglePlay(true);
+        }, 50);
+      }
     } else {
       navigate(`/watch?v=${id}`);
     }
@@ -313,6 +371,8 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
         onTimeUpdated,
         seekTime,
         toggleMiniPlayer,
+        toggleVideoDislike,
+        toggleVideoLike,
       }}
     >
       <Portal if={container !== undefined} container={container as Element}>

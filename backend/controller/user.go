@@ -5,6 +5,7 @@ import (
 	"backend/schema"
 	"backend/validators"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -176,4 +177,140 @@ func GetUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"user": user})
+}
+
+func Subscribe(c *gin.Context) {
+
+	// check if user already exists with auth middleware
+	_user, exists := c.Get("user")
+
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "User not found",
+		})
+
+		return
+	}
+
+	subscriber, ok := _user.(schema.User)
+
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "User not found",
+		})
+
+		return
+	}
+
+	// convert id to int
+	id, err := strconv.Atoi(c.Param("id"))
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user channel"})
+		return
+	}
+
+	if id == subscriber.Id {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot subscribe to self"})
+		return
+	}
+
+	var subscribed schema.User
+
+	config.DB.First(&subscribed, id)
+
+	if subscribed.Id == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Unable to find user channel"})
+		return
+	}
+
+	var subscription schema.Subscription
+	// check if user is already subscribed
+	config.DB.Where("subscriber_id = ? AND subscribed_id = ?", subscriber.Id, subscribed.Id).First(&subscription)
+
+	if subscription.Id != 0 {
+		// this means that subscription already exists
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "User already subscribed",
+		})
+
+		return
+	}
+
+	newSubscription := schema.Subscription{
+		SubscriberId: subscriber.Id,
+		SubscribedId: subscribed.Id,
+	}
+
+	config.DB.Create(&newSubscription)
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": newSubscription,
+	})
+}
+func Unsubscribe(c *gin.Context) {
+
+	// check if user already exists with auth middleware
+	_user, exists := c.Get("user")
+
+	if !exists {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "User not found",
+		})
+
+		return
+	}
+
+	subscriber, ok := _user.(schema.User)
+
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "User not found",
+		})
+
+		return
+	}
+
+	// convert id to int
+	id, err := strconv.Atoi(c.Param("id"))
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user channel"})
+		return
+	}
+
+	if id == subscriber.Id {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot subscribe to self"})
+		return
+	}
+
+	var subscribed schema.User
+
+	config.DB.First(&subscribed, id)
+
+	if subscribed.Id == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Unable to find user channel"})
+		return
+	}
+
+	var subscription schema.Subscription
+	// check if user is already subscribed
+	config.DB.Where("subscriber_id = ? AND subscribed_id = ?", subscriber.Id, subscribed.Id).First(&subscription)
+
+	if subscription.Id == 0 {
+		// this means that subscription already exists
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "User not subscribed",
+		})
+
+		return
+	}
+
+	config.DB.Delete(&subscription)
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": "unsubscribed successfully",
+	})
 }

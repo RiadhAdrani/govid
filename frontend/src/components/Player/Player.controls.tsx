@@ -22,13 +22,7 @@ export default () => {
     <div class={['row justify-between w-100%', !mini ? 'p-x-3 p-t-3' : 'p-x-0 p-t-0']}>
       <div class={'row-center gap-3'}>
         <Icon icon="i-mdi-skip-previous" />
-        <Icon
-          icon={!paused ? 'i-mdi-pause' : 'i-mdi-play'}
-          onClick={() => {
-            console.log('toggle play');
-            togglePlay();
-          }}
-        />
+        <Icon icon={!paused ? 'i-mdi-pause' : 'i-mdi-play'} onClick={() => togglePlay()} />
         <Icon icon="i-mdi-skip-next" />
         <div class="row-center gap-2">
           <Icon

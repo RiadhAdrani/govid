@@ -1,14 +1,7 @@
 package schema
 
-import (
-	"time"
-
-	"gorm.io/gorm"
-)
-
 // ! camelCase json fields !
 type Video struct {
-	Id          int    `json:"id" gorm:"primaryKey"`
 	Title       string `json:"title" gorm:"not null"`
 	Description string `json:"description" gorm:"not null"`
 	Public      bool   `json:"privacy" gorm:"not null"`
@@ -17,8 +10,12 @@ type Video struct {
 	Tags        string `json:"tags"`
 	Filename    string `json:"filename" gorm:"not null"`
 
+	LikesCount    int `json:"likesCount" gorm:"-"`
+	DisLikesCount int `json:"dislikesCount" gorm:"-"`
+
+	IsLiked    bool `json:"isLiked" gorm:"-"`
+	IsDisLiked bool `json:"isDisliked" gorm:"-"`
+
 	// gorm overrides
-	CreatedAt time.Time      `json:"createdAt"`
-	UpdatedAt time.Time      `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `json:"deletedAt" gorm:"index"`
+	Base
 }

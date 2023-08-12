@@ -53,7 +53,7 @@ func main() {
 		})
 	})
 
-	// users
+	// routes
 	routes.UserRoutes(router)
 	routes.VideoRoutes(router)
 
