@@ -4,23 +4,60 @@ import (
 	"backend/config"
 	"backend/middleware"
 	"backend/schema"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func CreateVideo(c *gin.Context) {
-	// single file
-	file, _ := c.FormFile("file")
+// ? should always be a multiple of 24 to avoid corrupted bytes with padding
+const CHUNK_SIZE = 24 * 1000 * 50
 
+const UPLOADING = "uploading"
+const DONE = "done"
+const FAILED = "failed"
+const PROCESSING = "processing"
+
+var DIR, _ = os.Getwd()
+var UPLOAD_DIR = fmt.Sprintf("%s/public/upload", DIR)
+var WATCH_DIR = fmt.Sprintf("%s/public/watch", DIR)
+
+func CreateChunkRange(videoId int) (UploadVideoChunkResponse, error) {
+	body := UploadVideoChunkResponse{}
+
+	task := schema.VideoUploadTask{}
+
+	res := config.DB.Where("video_id = ? AND status = ?", videoId, UPLOADING).First(&task)
+
+	if res.Error != nil {
+		return body, errors.New("in progress video upload task was not found")
+	}
+
+	body.From = task.Uploaded
+	body.To = int64(math.Min(float64(body.From+CHUNK_SIZE), float64(task.Size)))
+	body.TaskId = task.Id
+
+	return body, nil
+}
+
+func MakeTaskDirectoryPath(task *schema.VideoUploadTask) string {
+	return fmt.Sprintf("%s/public/upload/%d", DIR, task.Id)
+}
+
+func CleanTaskUploadFolder(id int) {
+	// delete the folder of the task dir
+	os.RemoveAll(fmt.Sprintf("%s/%d", UPLOAD_DIR, id))
+}
+
+func StartVideoUpload(c *gin.Context) {
 	u, exists := c.Get("user")
 
 	if !exists {
@@ -41,36 +78,381 @@ func CreateVideo(c *gin.Context) {
 		return
 	}
 
-	extension := path.Ext(file.Filename)
+	var body StartVideoUploadBody
 
-	title := strings.TrimSuffix(file.Filename, extension)
+	err := c.Bind(&body)
 
-	video := schema.Video{
-		Title:    title,
-		Public:   false,
-		Owner:    user,
-		Filename: file.Filename,
-	}
-
-	result := config.DB.Create(&video)
-
-	if result.Error != nil {
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": result.Error.Error(),
+			"error":   "Failed to read body",
+			"details": err.Error(),
 		})
 
 		return
 	}
 
+	vBody, err := ValidateStartVideoUpload(body)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+
+		return
+	}
+
+	// create a new video entry
+	newVideo := schema.Video{
+		Title:    vBody.Title,
+		Public:   false,
+		Owner:    user,
+		Duration: vBody.Duration,
+	}
+
+	res := config.DB.Create(&newVideo)
+
+	if res.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": res.Error.Error(),
+		})
+
+		return
+	}
+
+	// create a new task
+	newTask := schema.VideoUploadTask{
+		Status:   UPLOADING,
+		Size:     vBody.Size,
+		Uploaded: 0,
+		Filename: vBody.Filename,
+		VideoAction: schema.VideoAction{
+			Video:  newVideo,
+			Action: schema.Action{User: user},
+		},
+	}
+
+	res = config.DB.Create(&newTask)
+
+	if res.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": res.Error.Error(),
+		})
+
+		return
+	}
+
+	next, err := CreateChunkRange(newVideo.Base.Id)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"next": next,
+		"data": newTask,
+	})
+}
+
+func FailVideoUploadTask(taskId int) {
+	task := schema.VideoUploadTask{}
+
+	// get task
+	res := config.DB.First(&task, taskId)
+
+	CleanTaskUploadFolder(task.Id)
+
+	if res.Error != nil {
+		return
+	}
+
+	task.Status = FAILED
+
+	config.DB.Save(&task)
+}
+
+func ProcessVideo(taskId int) {
+	task := schema.VideoUploadTask{}
+
+	// get task
+	res := config.DB.First(&task, taskId)
+
+	if res.Error != nil {
+		FailVideoUploadTask(task.Id)
+		return
+	}
+
+	// get video
+	video := schema.Video{}
+
+	res = config.DB.First(&video, task.VideoId)
+
+	if res.Error != nil {
+		FailVideoUploadTask(task.Id)
+		return
+	}
+
+	taskDir := MakeTaskDirectoryPath(&task)
+
+	// get all files
+	var chunks []schema.VideoUploadChunk
+
+	config.DB.Where("video_id = ?", video.Id).Find(&chunks)
+
+	// map to chunks paths
+
+	var mergedBytes []byte
+
+	for _, chunk := range chunks {
+		path := fmt.Sprintf("%s/%s", taskDir, chunk.Filename)
+
+		fileBytes, err := os.ReadFile(path)
+
+		if err != nil {
+			FailVideoUploadTask(task.Id)
+			return
+		}
+
+		mergedBytes = append(mergedBytes, fileBytes...)
+	}
+
+	// file name
+	extension := path.Ext(task.Filename)
+
 	filename := fmt.Sprintf("%d%s", video.Id, extension)
 
-	UploadVideo(c, filename)
+	dst := fmt.Sprintf("%s/public/watch/%s", DIR, filename)
 
+	// create a file
+	err := os.WriteFile(dst, mergedBytes, 0644)
+
+	if err != nil {
+		FailVideoUploadTask(task.Id)
+		return
+	}
+
+	// set the file name of the video
 	video.Filename = filename
 
 	config.DB.Save(&video)
 
-	c.JSON(http.StatusOK, gin.H{"data": video})
+	// delete the folder of the task dir
+	CleanTaskUploadFolder(task.Id)
+
+	task.Status = DONE
+
+	config.DB.Save(&task)
+}
+
+func UploadVideoChunk(c *gin.Context) {
+	user, video, err := BeforeVideoAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+	}
+
+	var body UploadVideoChunkBody
+
+	err = c.Bind(&body)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   err.Error(),
+			"details": body,
+		})
+
+		return
+	}
+
+	vBody, err := ValidateUploadVideoChunk(body)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+
+		return
+	}
+
+	// find task
+	task := schema.VideoUploadTask{}
+
+	res := config.DB.Where("id = ? AND status = ?", vBody.TaskId, UPLOADING).First(&task, vBody.TaskId)
+
+	if res.Error != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"error": "could not resume upload",
+		})
+
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "could not resume upload",
+		})
+
+		return
+	}
+
+	taskDir := MakeTaskDirectoryPath(&task)
+
+	chunkName := fmt.Sprintf("chunk-%d@%d-%d", task.Id, vBody.From, vBody.To)
+
+	if vBody.From == 0 {
+		// create a new directory
+		os.Mkdir(taskDir, os.ModeDir|os.ModePerm)
+	} else {
+		// validated with latest chunk
+		lastChunk := schema.VideoUploadChunk{}
+
+		res := config.DB.Where("video_id = ?", video.Id).Last(&lastChunk)
+
+		if res.Error != nil {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{
+				"error": "could not resume upload (unable to find latest chunk)",
+			})
+
+			return
+		}
+
+		if lastChunk.To != vBody.From {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{
+				"error": "could not resume upload (invalid chunk)",
+			})
+
+			return
+		}
+	}
+
+	_, err = os.Stat(taskDir)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"error": "could not resume upload (unable to upload chunks)",
+		})
+
+		return
+	}
+
+	dst := fmt.Sprintf("%s/%s", taskDir, chunkName)
+
+	bytes, err := base64.StdEncoding.DecodeString(vBody.Bytes)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"error": err.Error(),
+			"msg":   "could not resume upload (unable to decode chunk)",
+		})
+
+		return
+	}
+
+	// add file
+	err = os.WriteFile(dst, bytes, 0644)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"error": "could not resume upload (unable to upload chunks)",
+		})
+	}
+
+	// update progress in task
+	task.Uploaded = vBody.To
+
+	newChunk := schema.VideoUploadChunk{
+		From:     vBody.From,
+		To:       vBody.To,
+		Filename: chunkName,
+		VideoAction: schema.VideoAction{
+			VideoId: video.Id,
+			Action: schema.Action{
+				UserId: user.Id,
+			},
+		},
+	}
+
+	res = config.DB.Save(&newChunk)
+
+	if res.Error != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"error": "could not resume upload (unable to save chunk)",
+		})
+		return
+	}
+
+	res = config.DB.Save(&task)
+
+	if res.Error != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"error": "could not resume upload (unable to update progress)",
+		})
+		return
+	}
+
+	next, err := CreateChunkRange(task.VideoId)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"error": "could not resume upload (unable to calculate next chunk)",
+		})
+		return
+	}
+
+	// check if upload is still in progress
+	if next.To < task.Size {
+		c.JSON(http.StatusCreated, gin.H{
+			"data": task,
+			"next": next,
+		})
+
+		return
+	}
+
+	// we are processing the video
+	task.Status = PROCESSING
+
+	config.DB.Save(&task)
+
+	// run in a seperate goroutine
+	go ProcessVideo(task.Id)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"msg":  "Upload complete, video is processing",
+		"data": task,
+	})
+
+}
+
+func GetVideoUploadProgress(c *gin.Context) {
+	_, video, err := BeforeVideoAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	task := schema.VideoUploadTask{}
+
+	res := config.DB.Preload("Video").Where("video_id = ?", video.Id).Last(&task)
+
+	if res.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": task,
+	})
 }
 
 func GetVideoMetaData(id int, userId int) (schema.Video, error) {
@@ -148,23 +530,6 @@ func GetVideo(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": video})
-}
-
-func UploadVideo(c *gin.Context, filename string) {
-
-	// single file
-	file, _ := c.FormFile("file")
-
-	dir, err := os.Getwd()
-
-	if err != nil {
-		c.String(http.StatusOK, "Upload failed")
-	}
-
-	dst := fmt.Sprintf("%s/public/watch/%s", dir, filename)
-
-	// Upload the file to specific dst.
-	c.SaveUploadedFile(file, dst)
 }
 
 func WatchVideo(c *gin.Context) {

@@ -10,7 +10,6 @@ import {
 
 export default defineConfig({
   presets: [
-    presetWind(),
     presetWebFonts({
       provider: 'google',
       fonts: {
@@ -18,6 +17,8 @@ export default defineConfig({
       },
     }),
     presetIcons(),
+    presetWind(),
+    presetUno(),
   ],
   shortcuts: [
     {

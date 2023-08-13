@@ -53,12 +53,21 @@ func ConnectDB() {
 }
 
 func SyncDB() {
-	DB.AutoMigrate(&schema.Video{})
 	DB.AutoMigrate(&schema.User{})
 	DB.AutoMigrate(&schema.Subscription{})
+
+	DB.AutoMigrate(&schema.Video{})
+
+	DB.AutoMigrate(&schema.VideoUploadChunk{})
+	DB.AutoMigrate(&schema.VideoUploadTask{})
+
 	DB.AutoMigrate(&schema.VideoLike{})
 	DB.AutoMigrate(&schema.VideoDisLike{})
+
 	DB.AutoMigrate(&schema.VideoComment{})
+	DB.AutoMigrate(&schema.VideoCommentLike{})
+	DB.AutoMigrate(&schema.VideoCommentDisLike{})
+
 	DB.AutoMigrate(&schema.VideoReply{})
 	DB.AutoMigrate(&schema.VideoReplyLike{})
 	DB.AutoMigrate(&schema.VideoReplyDisLike{})
