@@ -36,7 +36,7 @@ export default () => {
       <div class="flex-col flex-1 gap-3">
         <div id={watchElementId} class="relative w-100% aspect-video bg-zinc-900"></div>
         <div class="text-left col gap-4 m-t-2">
-          <h3 class="m-0">{data?.title}</h3>
+          <h3 class="m-0">{data?.title ?? '...'}</h3>
           <div class="row items-center justify-between">
             <div class="row gap-3">
               <img
@@ -45,15 +45,9 @@ export default () => {
               />
               <div class="col self-center">
                 <p class="text-sm">
-                  <span>{data?.owner.firstName}</span>
-                  <span> </span>
-                  <span>{data?.owner.lastName}</span>
+                  {data?.owner.firstName ?? '...'} {data?.owner.lastName ?? '...'}
                 </p>
-                <p class="text-xs">
-                  <span>{data?.owner.subCount}</span>
-                  <span> </span>
-                  <span>subscribers</span>
-                </p>
+                <p class="text-xs">{data?.owner.subCount ?? 0} subscribers</p>
               </div>
               <GButton
                 class="text-sm p-x-5 self-center rounded-20px p-y-0 bg-white text-[color:black]"
@@ -68,14 +62,14 @@ export default () => {
                 onClick={() => toggleVideoLike(true)}
               >
                 <Icon icon="i-mdi-thumb-up" class="text-md" />
-                <span>{data?.likesCount}</span>
+                <span>{data?.likesCount ?? 0}</span>
               </GButton>
               <GButton
                 class="row-center gap-2 p-x-7 rounded-20px text-md"
                 onClick={() => toggleVideoDislike(true)}
               >
                 <Icon icon="i-mdi-thumb-down" />
-                <span>{data?.dislikesCount}</span>
+                <span>{data?.dislikesCount ?? 0}</span>
               </GButton>
               <GButton class="p-x-5 rounded-20px">
                 <span class="i-mdi-light-home"></span> Save

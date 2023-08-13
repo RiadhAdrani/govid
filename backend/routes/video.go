@@ -8,7 +8,9 @@ import (
 )
 
 func VideoRoutes(router *gin.Engine) {
-	router.POST("/videos", middleware.RequireAuth, controller.CreateVideo)
+	router.POST("/videos", middleware.RequireAuth, controller.StartVideoUpload)
+	router.POST("/videos/:id/upload", middleware.RequireAuth, controller.UploadVideoChunk)
+	router.GET("/videos/:id/upload/progress", middleware.RequireAuth, controller.GetVideoUploadProgress)
 
 	router.GET("/videos/watch/:id", controller.WatchVideo)
 	router.GET("/videos/:id", controller.GetVideo)
