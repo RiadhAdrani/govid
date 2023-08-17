@@ -248,7 +248,7 @@ func ProcessVideo(taskId int) {
 }
 
 func UploadVideoChunk(c *gin.Context) {
-	user, video, err := BeforeVideoAction(c)
+	user, video, err := BeforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -430,7 +430,7 @@ func UploadVideoChunk(c *gin.Context) {
 }
 
 func GetVideoUploadProgress(c *gin.Context) {
-	_, video, err := BeforeVideoAction(c)
+	_, video, err := BeforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -612,7 +612,7 @@ func WatchVideo(c *gin.Context) {
 	})
 }
 
-func BeforeVideoAction(c *gin.Context) (schema.User, schema.Video, error) {
+func BeforeVideoAction(c *gin.Context, doNeedUser bool) (schema.User, schema.Video, error) {
 	user := schema.User{}
 	video := schema.Video{}
 
@@ -626,13 +626,13 @@ func BeforeVideoAction(c *gin.Context) (schema.User, schema.Video, error) {
 	// check if user already exists with auth middleware
 	_user, exists := c.Get("user")
 
-	if !exists {
+	if !exists && doNeedUser {
 		return user, video, errors.New("user not found")
 	}
 
 	user, ok := _user.(schema.User)
 
-	if !ok {
+	if !ok && doNeedUser {
 		return user, video, errors.New("user not found")
 	}
 
@@ -647,7 +647,7 @@ func BeforeVideoAction(c *gin.Context) (schema.User, schema.Video, error) {
 }
 
 func LikeOrDislikeVideo(c *gin.Context, isLike bool) {
-	user, video, err := BeforeVideoAction(c)
+	user, video, err := BeforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -720,7 +720,7 @@ func LikeOrDislikeVideo(c *gin.Context, isLike bool) {
 }
 
 func UnLikeOrDislikeVideo(c *gin.Context, isLike bool) {
-	user, video, err := BeforeVideoAction(c)
+	user, video, err := BeforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -775,4 +775,50 @@ func UnLikeVideo(c *gin.Context) {
 
 func UnDisLikeVideo(c *gin.Context) {
 	UnLikeOrDislikeVideo(c, false)
+}
+
+func AddWatchTime(c *gin.Context) {
+	user, video, _ := BeforeVideoAction(c, false)
+
+	if video.Id == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "video not found", "id": video.Id})
+		return
+	}
+
+	var body []AddWatchTimeBody
+
+	err := c.Bind(&body)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "invalid body", "body": body})
+		return
+	}
+
+	for _, segment := range body {
+
+		if segment.To < segment.From {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "invalid segment"})
+			return
+		}
+
+		watchTime := schema.VideoWatchTime{
+			From: segment.From,
+			To:   segment.To,
+			Time: segment.To - segment.From,
+			AnonymousVideoAction: schema.AnonymousVideoAction{
+				UserId:  user.Id,
+				VideoId: video.Id,
+			},
+		}
+
+		// add watch time to entry
+		res := config.DB.Create(&watchTime)
+
+		if res.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "couldn't add watch time entry"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"msg": "done"})
 }

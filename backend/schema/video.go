@@ -26,6 +26,14 @@ type VideoAction struct {
 	Action
 }
 
+type AnonymousVideoAction struct {
+	Base
+
+	UserId  int   `json:"userId"`
+	VideoId int   `json:"videoId" gorm:"not null"`
+	Video   Video `json:"video" gorm:"foreignKey:VideoId"`
+}
+
 type VideoUploadTask struct {
 	Status   string `json:"status" gorm:"not null"`
 	Uploaded int64  `json:"uploaded" gorm:"default:0"`
@@ -44,11 +52,11 @@ type VideoUploadChunk struct {
 }
 
 type VideoWatchTime struct {
-	Time int64 `json:"time" gorm:"not null"`
-	From int64 `json:"from" gorm:"not null"`
-	To   int64 `json:"to" gorm:"not null"`
+	Time float64 `json:"time" gorm:"not null"`
+	From float64 `json:"from" gorm:"not null"`
+	To   float64 `json:"to" gorm:"not null"`
 
-	VideoAction
+	AnonymousVideoAction
 }
 
 type VideoView struct {

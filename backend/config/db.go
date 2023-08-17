@@ -58,6 +58,8 @@ func SyncDB() {
 
 	DB.AutoMigrate(&schema.Video{})
 
+	DB.AutoMigrate(&schema.VideoWatchTime{})
+
 	DB.AutoMigrate(&schema.VideoUploadChunk{})
 	DB.AutoMigrate(&schema.VideoUploadTask{})
 

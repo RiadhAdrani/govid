@@ -57,6 +57,8 @@ export interface IPlayerContext {
   toggleMute: (v?: boolean) => void;
   setVolume: (v: number) => void;
   onTimeUpdated: () => void;
+  onPause: () => void;
+  onEnded: () => void;
   seekTime: DOMEventHandler<MouseEvent, HTMLElement>;
   toggleMiniPlayer: (v?: boolean) => void;
 
@@ -83,6 +85,8 @@ export const PlayerContext = createContext<IPlayerContext>({
   mini: true,
   speed: 1,
   theatre: true,
+  onPause: () => 0,
+  onEnded: () => 0,
 
   setVolume: () => 0,
   togglePlay: () => 0,
@@ -107,7 +111,27 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
   const [data, setData] = useState<IPlayerContext['data']>(undefined);
   const [timeRanges, setTimeRanges] = useState<IPlayerContext['timeRanges']>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>('loading');
+
   const [currentTime, setCurrentTime] = useState(0);
+  const [previousTime, setPreviousTime] = useState(0);
+
+  const [watchTime, setWatchTime] = useState(0);
+  const [watchSegments, setWatchSegments] = useState<Array<{ from: number; to: number }>>([]);
+
+  const storedSegmentsTime = useMemo(() => {
+    return watchSegments.reduce((time, segment) => {
+      return time + (segment.to - segment.from);
+    }, 0);
+  }, watchSegments);
+
+  const reset = () => {
+    setData(undefined);
+    setTimeRanges([]);
+    setLoadingState('loading');
+    setCurrentTime(0);
+    setPreviousTime(0);
+    setWatchTime(0);
+  };
 
   const controls = useReactive({
     show: false,
@@ -205,7 +229,15 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
   const onTimeUpdated: IPlayerContext['onTimeUpdated'] = () => {
     if (!videoElement) return;
 
-    setCurrentTime(videoElement.currentTime);
+    const newCurrentTime = videoElement.currentTime;
+
+    const watchSegment = watchTime + (newCurrentTime - currentTime);
+
+    setWatchSegments([...watchSegments, { from: currentTime, to: newCurrentTime }]);
+
+    setWatchTime(watchSegment);
+    setPreviousTime(currentTime);
+    setCurrentTime(newCurrentTime);
   };
 
   const seekTime: IPlayerContext['seekTime'] = (e) => {
@@ -219,7 +251,39 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
 
     const percentage = (x - left) / (right - left);
 
-    videoElement.currentTime = percentage * duration;
+    const newTime = percentage * duration;
+
+    setWatchSegments([...watchSegments, { from: previousTime, to: currentTime }]);
+
+    setPreviousTime(newTime);
+    setCurrentTime(newTime);
+    setWatchTime(watchTime + (currentTime - previousTime));
+
+    videoElement.currentTime = newTime;
+  };
+
+  const onPause: IPlayerContext['onPause'] = () => {
+    if (!videoElement) return;
+
+    const newTime = videoElement.currentTime;
+
+    setWatchSegments([...watchSegments, { from: previousTime, to: newTime }]);
+
+    setWatchTime(watchTime + (newTime - previousTime));
+    setPreviousTime(newTime);
+    setCurrentTime(newTime);
+  };
+
+  const onEnded: IPlayerContext['onEnded'] = () => {
+    if (!videoElement) return;
+
+    const newTime = videoElement.currentTime;
+
+    setWatchSegments([...watchSegments, { from: previousTime, to: newTime }]);
+
+    setWatchTime(watchTime + (newTime - previousTime));
+    setPreviousTime(0);
+    setCurrentTime(0);
   };
 
   const toggleMiniPlayer: IPlayerContext['toggleMiniPlayer'] = (v) => {
@@ -325,6 +389,8 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
 
   useEffect(() => {
     if (id === undefined) {
+      reset();
+
       return;
     }
 
@@ -346,6 +412,18 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
         setLoadingState('error');
       });
   }, id);
+
+  useEffect(() => {
+    if (!id || storedSegmentsTime < 0.5) {
+      return;
+    }
+
+    const segments = [...watchSegments];
+    setWatchSegments([]);
+
+    // we send data to the server
+    useApi.post(`/videos/${id}/watch`, segments);
+  }, storedSegmentsTime);
 
   return (
     <PlayerContext.Provider
@@ -373,6 +451,8 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
         toggleMiniPlayer,
         toggleVideoDislike,
         toggleVideoLike,
+        onPause,
+        onEnded,
       }}
     >
       <Portal if={container !== undefined} container={container as Element}>

@@ -48,3 +48,8 @@ type UploadVideoChunkResponse struct {
 	To     int64 `json:"to" binding:"required"`
 	TaskId int   `json:"taskId" binding:"required"`
 }
+
+type AddWatchTimeBody struct {
+	From float64 `json:"from"`
+	To   float64 `json:"to" binding:"required"`
+}
