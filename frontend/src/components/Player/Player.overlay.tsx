@@ -19,9 +19,11 @@ export default () => {
     onProgress,
     seekTime,
     onTimeUpdated,
+    onEnded,
+    onPause,
   } = useContext(PlayerContext);
 
-  const videoURL = useMemo(() => (id ? `http://localhost:8080/videos/watch/${id}` : undefined));
+  const videoURL = useMemo(() => (id ? `http://localhost:8080/videos/${id}/watch` : undefined));
 
   return (
     <div class="w-100% h-100%">
@@ -81,6 +83,8 @@ export default () => {
         muted={muted}
         onProgress={onProgress}
         volume={volume}
+        onEnded={onEnded}
+        onPause={onPause}
       >
         <source src={videoURL} type={'video/mp4'}></source>
       </video>
