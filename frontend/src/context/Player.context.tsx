@@ -17,6 +17,7 @@ import useApi from '../utils/api';
 import Player from '../components/Player/Player';
 import { UserContext } from './User.context';
 import { ApiResponse } from '../types/api';
+import useWindowSize from '../hooks/useWindowSize';
 
 export interface UseRefData<T = unknown> {
   value: T;
@@ -48,6 +49,8 @@ export interface IPlayerContext {
   miniPlayerId: string;
   videoElementId: string;
   watchElementId: string;
+
+  dimensions: { height: number; width: number };
 
   setId: (id: string) => void;
 
@@ -99,6 +102,7 @@ export const PlayerContext = createContext<IPlayerContext>({
   toggleMiniPlayer: () => 0,
   toggleVideoDislike: () => 0,
   toggleVideoLike: () => 0,
+  dimensions: { height: 0, width: 0 },
 });
 
 export const PlayerProvider = (props: PropsWithUtility<{}>) => {
@@ -119,6 +123,16 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
   const [watchSegments, setWatchSegments] = useState<Array<{ from: number; to: number }>>([]);
 
   const [isViewCounted, setViewCounted] = useState(false);
+
+  const windowSize = useWindowSize();
+
+  const dimensions: IPlayerContext['dimensions'] = useMemo(() => {
+    if (!videoElement) return { height: 0, width: 0 };
+
+    const { height, width } = videoElement.getBoundingClientRect();
+
+    return { height, width };
+  }, [container, windowSize, data]);
 
   const storedSegmentsTime = useMemo(() => {
     return watchSegments.reduce((time, segment) => {
@@ -464,6 +478,7 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
         toggleVideoLike,
         onPause,
         onEnded,
+        dimensions,
       }}
     >
       <Portal if={container !== undefined} container={container as Element}>

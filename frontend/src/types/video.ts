@@ -32,6 +32,7 @@ export interface Video extends Base {
 
 export interface VideoAction extends Action {
   videoId: number;
+  user: PublicUser;
 }
 
 export interface UploadBody {
@@ -76,3 +77,5 @@ export interface VideoComment extends VideoAction {
 export type CreateVideoCommentBody = Pick<VideoComment, 'text'>;
 
 export type CreateVideoCommentResponse = ApiResponse<VideoComment>;
+
+export type GetVideoCommentResponse = ApiResponse<Array<VideoComment>, { totalCount: number }>;
