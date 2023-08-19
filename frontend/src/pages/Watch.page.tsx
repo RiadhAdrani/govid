@@ -1,10 +1,18 @@
-import { getSearchParams, useContext, useEffect, useMemo, useState } from '@riadh-adrani/ruvy';
+import {
+  getSearchParams,
+  useContext,
+  useEffect,
+  useMemo,
+  useReactive,
+  useState,
+} from '@riadh-adrani/ruvy';
 import GButton from '../components/Button/G.Button';
 
 import Icon from '../components/Icon/Icon';
 import { PlayerContext } from '../context/Player.context';
 import useApi from '../utils/api';
 import { UserContext } from '../context/User.context';
+import { CreateVideoCommentBody, CreateVideoCommentResponse } from '../types/video';
 
 export default () => {
   const { isAuthenticated, user } = useContext(UserContext);
@@ -41,6 +49,27 @@ export default () => {
   };
 
   const [expanded, setExpanded] = useState(false);
+
+  const comment = useReactive({ text: '', loading: false, error: '' });
+
+  const onComment = () => {
+    if (!isAuthenticated) return;
+
+    comment.loading = true;
+
+    const body: CreateVideoCommentBody = { text: comment.text };
+
+    useApi
+      .post<CreateVideoCommentResponse>(`/videos/${data?.id}/comments`, body)
+      .then((res) => {
+        if (!res.data) return;
+
+        console.log(res.data.data);
+      })
+      .catch((e) => {
+        comment.error = e;
+      });
+  };
 
   return (
     <div class={'row max-w-100vw flex-1 gap-8 p-y-7 p-x-10'}>
@@ -126,6 +155,13 @@ export default () => {
               {expanded ? 'Show less' : 'Show more'}
             </button>
           </div>
+        </div>
+      </div>
+      <div class="w-450px h-100% bg-zinc-800 rounded">
+        <h3>Comments</h3>
+        <div class="row-center">
+          <input onInput={(e) => (comment.text = e.currentTarget.value)} value={comment.text} />
+          <button onClick={onComment}>comment</button>
         </div>
       </div>
     </div>
