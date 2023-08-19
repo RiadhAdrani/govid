@@ -911,3 +911,49 @@ func CreateComment(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"data": comment, "msg": "comment created successfully"})
 }
+
+func GetComments(c *gin.Context) {
+	_, video, err := BeforeVideoAction(c, false)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "msg": "couldn't fetch comments"})
+		return
+	}
+
+	// get query params
+	rFrom := c.DefaultQuery("from", "0")
+	rCount := c.Query("count")
+
+	from, err := strconv.Atoi(rFrom)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "msg": "invalid page start"})
+		return
+	}
+
+	count, err := strconv.Atoi(rCount)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "msg": "invalid page end"})
+		return
+	}
+
+	var commentsCount int64
+
+	err = config.DB.Model(&schema.VideoComment{}).Where("video_id = ?", video.Id).Count(&commentsCount).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err, "msg": "something went wrong..."})
+		return
+	}
+
+	comments := []schema.VideoComment{}
+
+	err = config.DB.Preload("User").Limit(count).Offset(from).Where("video_id = ?", video.Id).Find(&comments).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err, "msg": "something went wrong..."})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": comments, "totalCount": commentsCount})
+}
