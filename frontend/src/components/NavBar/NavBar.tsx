@@ -10,7 +10,7 @@ const NavBar = (_: PropsWithUtility) => {
 
   return (
     <>
-      <div class="row fixed top-0px left-0px right-0px items-center justify-stretch h-[var(--nav-bar-height)] p-x-6 bg-zinc-900 z-10">
+      <div class="row fixed top-0px left-0px right-0px items-center justify-stretch h-[var(--nav-bar-height)] p-x-6 bg-zinc-900 backdrop-blur-50 z-10">
         <div class="row-center justify-start gap-5 flex-1">
           <button class={'icon-btn'}>
             <Icon icon="i-mdi-menu" />

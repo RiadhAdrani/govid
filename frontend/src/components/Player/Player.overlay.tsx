@@ -69,7 +69,7 @@ export default () => {
                 <div class={'absolute h-full bg-green z-2'} style={{ width: `${progress}%` }} />
               </div>
             </div>
-            <div class="row justify-between p-x-3 p-t-3">
+            <div class="row justify-between">
               <PlayerControls />
             </div>
           </div>
