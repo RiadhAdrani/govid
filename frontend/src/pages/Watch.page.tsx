@@ -1,4 +1,4 @@
-import { getSearchParams, useContext, useEffect, useState } from '@riadh-adrani/ruvy';
+import { getSearchParams, useContext, useEffect, useMemo, useState } from '@riadh-adrani/ruvy';
 import GButton from '../components/Button/G.Button';
 
 import Icon from '../components/Icon/Icon';
@@ -7,7 +7,7 @@ import useApi from '../utils/api';
 import { UserContext } from '../context/User.context';
 
 export default () => {
-  const { isAuthenticated } = useContext(UserContext);
+  const { isAuthenticated, user } = useContext(UserContext);
   const { watchElementId, setId, toggleMiniPlayer, data, toggleVideoLike, toggleVideoDislike } =
     useContext(PlayerContext);
 
@@ -21,12 +21,23 @@ export default () => {
     toggleMiniPlayer(false);
   }, v);
 
+  const ratio = useMemo(() => {
+    if (!data) return { likes: 0, dislikes: 0 };
+
+    const likes = data.likesCount;
+    const dislikes = data.dislikesCount;
+    const sum = likes + dislikes;
+
+    return {
+      likes: (likes / sum) * 100,
+      dislikes: (dislikes / sum) * 100,
+    };
+  }, [data?.likesCount, data?.dislikesCount]);
+
   const onSubscribeClick = () => {
     if (!data || !isAuthenticated) return;
 
-    useApi.post(`/users/${data.owner.id}/subscribe`).then((it) => {
-      console.log(it);
-    });
+    useApi.post(`/users/${data.owner.id}/subscribe`);
   };
 
   const [expanded, setExpanded] = useState(false);
@@ -50,6 +61,7 @@ export default () => {
                 <p class="text-xs">{data?.owner.subCount ?? 0} subscribers</p>
               </div>
               <GButton
+                if={user?.id !== data?.owner.id}
                 class="text-sm p-x-5 self-center rounded-20px p-y-0 bg-white text-[color:black]"
                 onClick={onSubscribeClick}
               >
@@ -57,23 +69,38 @@ export default () => {
               </GButton>
             </div>
             <div class="row gap-2">
-              <GButton
-                class="row-center gap-2 p-x-7 rounded-20px text-md"
-                onClick={() => toggleVideoLike(true)}
-              >
-                <Icon icon="i-mdi-thumb-up" class="text-md" />
-                <span>{data?.likesCount ?? 0}</span>
-              </GButton>
-              <GButton
-                class="row-center gap-2 p-x-7 rounded-20px text-md"
-                onClick={() => toggleVideoDislike(true)}
-              >
-                <Icon icon="i-mdi-thumb-down" />
-                <span>{data?.dislikesCount ?? 0}</span>
-              </GButton>
-              <GButton class="p-x-5 rounded-20px">
-                <span class="i-mdi-light-home"></span> Save
-              </GButton>
+              <div class="relative col">
+                <div class="row flex-1">
+                  <div
+                    class={['action-btn', data?.isLiked && 'text-green-500']}
+                    onClick={() => toggleVideoLike(true)}
+                  >
+                    <Icon icon="i-mdi-thumb-up" class="text-md" />
+                    <span>{data?.likesCount ?? 0}</span>
+                  </div>
+                  <div
+                    class={['action-btn', data?.isDisliked && 'text-red-500']}
+                    onClick={() => toggleVideoDislike(true)}
+                  >
+                    <Icon icon="i-mdi-thumb-down" class="text-md" />
+                    <span>{data?.dislikesCount ?? 0}</span>
+                  </div>
+                </div>
+                <div class="absolute row bottom-0px bg-zinc-800 rounded w-100% h-2px">
+                  <div
+                    class="h-100% bg-green-500 duration-200"
+                    style={{ width: `${ratio.likes}%` }}
+                  />
+                  <div
+                    class="h-100% bg-red-500 duration-200"
+                    style={{ width: `${ratio.dislikes}%` }}
+                  />
+                </div>
+              </div>
+              <div class="action-btn">
+                <Icon icon="i-mdi-playlist-plus" />
+                <span>Save</span>
+              </div>
             </div>
           </div>
           <div class={'relative p-3 col gap-2 bg-zinc-800 rounded-10px'}>
@@ -85,7 +112,13 @@ export default () => {
               }}
             >
               <div class="relative col gap-1 overflow-hidden">
-                <p>136,915 views | {new Date(data?.createdAt ?? '').toDateString()}</p>
+                <p>
+                  <span>
+                    {data?.views} {data && data.views > 1 ? 'views' : 'view'}
+                  </span>
+                  <span> | </span>
+                  <span>{new Date(data?.createdAt ?? '').toDateString()}</span>
+                </p>
                 <p class="text-sm text-clip">{data?.description}</p>
               </div>
             </div>
@@ -95,7 +128,6 @@ export default () => {
           </div>
         </div>
       </div>
-      <div class={'w-450px'}></div>
     </div>
   );
 };

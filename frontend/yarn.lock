@@ -250,10 +250,10 @@
   resolved "https://registry.yarnpkg.com/@riadh-adrani/obj-utils/-/obj-utils-1.0.2.tgz#3b48a857979907d5d8e02b89306392c9e8e044bb"
   integrity sha512-seQu8jNtFnFR5EzwAaRbJz2hGvSnmu7JopROeTrFnoOlp0hDxX3ZZtXWW+Ku1+m6neQ8yUiRMq3dNJINzs8RYg==
 
-"@riadh-adrani/ruvy@^0.4.11":
-  version "0.4.11"
-  resolved "https://registry.yarnpkg.com/@riadh-adrani/ruvy/-/ruvy-0.4.11.tgz#493492ee64b54a0b42abb2294c1974bfc0219754"
-  integrity sha512-qh3QRZ/DGlK81edJ60lxX63XuRfWuecJ8RRvSv++7txJrw/0jgY4miMTGBsv5O2kfceUgIYhPmjf6+nbVGXnFw==
+"@riadh-adrani/ruvy@0.4.12":
+  version "0.4.12"
+  resolved "https://registry.yarnpkg.com/@riadh-adrani/ruvy/-/ruvy-0.4.12.tgz#94935f7fb9dbd6fe9b8e89bced87548ff3020f9b"
+  integrity sha512-53jCHvUDcHRJ1IsnwJG6sRaxRhvZmwstQH//4JAsf6wpn5ij8fDAiBH4iA5QwBbKWvHVJCypn749dZV8Lhdcdg==
   dependencies:
     "@riadh-adrani/array-utils" "1.0.2"
     "@riadh-adrani/async-utils" "1.0.2"

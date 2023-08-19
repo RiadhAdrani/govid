@@ -18,6 +18,11 @@ export interface Video extends Base {
 
   owner: PublicUser;
 
+  duration: number;
+  minViewDuration: number;
+
+  views: number;
+
   dislikesCount: number;
   likesCount: number;
 

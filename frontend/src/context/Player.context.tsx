@@ -118,6 +118,8 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
   const [watchTime, setWatchTime] = useState(0);
   const [watchSegments, setWatchSegments] = useState<Array<{ from: number; to: number }>>([]);
 
+  const [isViewCounted, setViewCounted] = useState(false);
+
   const storedSegmentsTime = useMemo(() => {
     return watchSegments.reduce((time, segment) => {
       return time + (segment.to - segment.from);
@@ -131,6 +133,7 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
     setCurrentTime(0);
     setPreviousTime(0);
     setWatchTime(0);
+    setViewCounted(false);
   };
 
   const controls = useReactive({
@@ -424,6 +427,14 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
     // we send data to the server
     useApi.post(`/videos/${id}/watch`, segments);
   }, storedSegmentsTime);
+
+  useEffect(() => {
+    if (!id || !data || watchTime < data.minViewDuration || isViewCounted) return;
+
+    setViewCounted(true);
+
+    useApi.post(`/videos/${id}/view`);
+  }, [watchTime, isViewCounted]);
 
   return (
     <PlayerContext.Provider

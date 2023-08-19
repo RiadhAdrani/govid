@@ -2,18 +2,20 @@ package schema
 
 // ! camelCase json fields !
 type Video struct {
-	Title         string  `json:"title" gorm:"not null"`
-	Description   string  `json:"description" gorm:"not null"`
-	Public        bool    `json:"isPublic" gorm:"default:false"`
-	OwnerId       int     `json:"ownerId" gorm:"not null"`
-	Owner         User    `json:"owner" gorm:"foreignKey:OwnerId"`
-	Tags          string  `json:"tags"`
-	Filename      string  `json:"filename"`
-	Duration      float64 `json:"duration" gorm:"default:0"`
-	LikesCount    int     `json:"likesCount" gorm:"-"`
-	DisLikesCount int     `json:"dislikesCount" gorm:"-"`
-	IsLiked       bool    `json:"isLiked" gorm:"-"`
-	IsDisLiked    bool    `json:"isDisliked" gorm:"-"`
+	Title           string  `json:"title" gorm:"not null"`
+	Description     string  `json:"description" gorm:"not null"`
+	Public          bool    `json:"isPublic" gorm:"default:false"`
+	OwnerId         int     `json:"ownerId" gorm:"not null"`
+	Owner           User    `json:"owner" gorm:"foreignKey:OwnerId"`
+	Tags            string  `json:"tags"`
+	Filename        string  `json:"filename"`
+	Duration        float64 `json:"duration" gorm:"default:0"`
+	MinViewDuration float64 `json:"minViewDuration" gorm:"default:30"`
+	LikesCount      int     `json:"likesCount" gorm:"-"`
+	DisLikesCount   int     `json:"dislikesCount" gorm:"-"`
+	IsLiked         bool    `json:"isLiked" gorm:"-"`
+	IsDisLiked      bool    `json:"isDisliked" gorm:"-"`
+	Views           int64   `json:"views" gorm:"-"`
 
 	// gorm overrides
 	Base
@@ -60,7 +62,7 @@ type VideoWatchTime struct {
 }
 
 type VideoView struct {
-	VideoAction
+	AnonymousVideoAction
 }
 
 type VideoLike struct {

@@ -3,6 +3,7 @@ import Icon from '../Icon/Icon';
 import VolumeSlider from '../Slider/VolumeSlider';
 import { PlayerContext } from '../../context/Player.context';
 import { formatTime } from '../../utils/time';
+import PlayerButton from './Player.Button';
 
 export default () => {
   const {
@@ -19,11 +20,11 @@ export default () => {
   } = useContext(PlayerContext);
 
   return (
-    <div class={['row justify-between w-100%', !mini ? 'p-x-3 p-t-3' : 'p-x-0 p-t-0']}>
+    <div class={['row justify-between w-100%', !mini ? 'p-t-3' : 'p-t-2']}>
       <div class={'row-center gap-3'}>
-        <Icon icon="i-mdi-skip-previous" />
-        <Icon icon={!paused ? 'i-mdi-pause' : 'i-mdi-play'} onClick={() => togglePlay()} />
-        <Icon icon="i-mdi-skip-next" />
+        <PlayerButton icon="i-mdi-skip-previous" />
+        <PlayerButton icon={!paused ? 'i-mdi-pause' : 'i-mdi-play'} onClick={() => togglePlay()} />
+        <PlayerButton icon="i-mdi-skip-next" />
         <div class="row-center gap-2">
           <Icon
             icon={
@@ -45,15 +46,15 @@ export default () => {
       </div>
       <div class={'row-center gap-3'}>
         <div class="m-r-50px">
-          <Icon icon="i-mdi-play-circle-outline" size="1.5em" />
+          <PlayerButton icon="i-mdi-play-circle-outline" />
         </div>
-        <Icon icon="i-mdi-cog" size="1.5em" />
-        <Icon
+        <PlayerButton icon="i-mdi-cog" />
+        <PlayerButton
           icon={mini ? 'i-mdi-television' : 'i-mdi-dock-window'}
           onClick={() => toggleMiniPlayer()}
         />
-        <Icon icon="i-mdi-panorama-wide-angle-outline" size="1.5em" />
-        <Icon icon="i-mdi-fullscreen" size="1.5em" />
+        <PlayerButton if={!mini} icon="i-mdi-panorama-wide-angle-outline" />
+        <PlayerButton if={!mini} icon="i-mdi-fullscreen" />
       </div>
     </div>
   );

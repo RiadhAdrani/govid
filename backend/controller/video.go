@@ -101,12 +101,20 @@ func StartVideoUpload(c *gin.Context) {
 		return
 	}
 
+	// calculate the minimum duration for a view
+	var MinViewDuration float64 = 30
+
+	if vBody.Duration <= 30 {
+		MinViewDuration = vBody.Duration * 0.9
+	}
+
 	// create a new video entry
 	newVideo := schema.Video{
-		Title:    vBody.Title,
-		Public:   false,
-		Owner:    user,
-		Duration: vBody.Duration,
+		Title:           vBody.Title,
+		Public:          false,
+		Owner:           user,
+		Duration:        vBody.Duration,
+		MinViewDuration: MinViewDuration,
 	}
 
 	res := config.DB.Create(&newVideo)
@@ -508,6 +516,10 @@ func GetVideoMetaData(id int, userId int) (schema.Video, error) {
 		video.IsDisLiked = dislike.Id != 0
 	}
 
+	var views int64
+	config.DB.Model(&schema.VideoView{}).Where("video_id", video.Id).Count(&views)
+	video.Views = views
+
 	return video, nil
 }
 
@@ -812,13 +824,33 @@ func AddWatchTime(c *gin.Context) {
 		}
 
 		// add watch time to entry
-		res := config.DB.Create(&watchTime)
-
-		if res.Error != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "couldn't add watch time entry"})
-			return
-		}
+		config.DB.Create(&watchTime)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"msg": "done"})
+}
+
+func AddView(c *gin.Context) {
+	user, video, _ := BeforeVideoAction(c, false)
+
+	if video.Id == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "video not found", "id": video.Id})
+		return
+	}
+
+	view := schema.VideoView{
+		AnonymousVideoAction: schema.AnonymousVideoAction{
+			UserId:  user.Id,
+			VideoId: video.Id,
+		},
+	}
+
+	res := config.DB.Save(&view)
+
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": res.Error.Error(), "msg": "couldn't add view"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
 }

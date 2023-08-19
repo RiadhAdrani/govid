@@ -22,4 +22,5 @@ func VideoRoutes(router *gin.Engine) {
 	router.DELETE("/videos/:id/dislike", middleware.RequireAuth, controller.UnDisLikeVideo)
 
 	router.POST("/videos/:id/watch", controller.AddWatchTime)
+	router.POST("/videos/:id/view", controller.AddView)
 }
