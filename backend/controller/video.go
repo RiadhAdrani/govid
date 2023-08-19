@@ -831,11 +831,24 @@ func AddWatchTime(c *gin.Context) {
 }
 
 func AddView(c *gin.Context) {
-	user, video, _ := BeforeVideoAction(c, false)
+	_, video, _ := BeforeVideoAction(c, false)
 
 	if video.Id == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "video not found", "id": video.Id})
 		return
+	}
+
+	user := middleware.GetUserFromContext(c)
+
+	if user.Id != 0 {
+		var viewsCount int64 = 0
+
+		config.DB.Model(&schema.VideoView{}).Where("video_id = ? AND user_id = ?", video.Id, user.Id).Count(&viewsCount)
+
+		if viewsCount >= 1 {
+			c.JSON(http.StatusAlreadyReported, gin.H{"msg": "max views reached by the same user"})
+			return
+		}
 	}
 
 	view := schema.VideoView{

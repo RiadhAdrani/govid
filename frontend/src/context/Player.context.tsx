@@ -417,7 +417,7 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
   }, id);
 
   useEffect(() => {
-    if (!id || storedSegmentsTime < 0.5) {
+    if (!id || storedSegmentsTime < 1) {
       return;
     }
 
