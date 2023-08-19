@@ -23,4 +23,6 @@ func VideoRoutes(router *gin.Engine) {
 
 	router.POST("/videos/:id/watch", controller.AddWatchTime)
 	router.POST("/videos/:id/view", controller.AddView)
+
+	router.POST("/videos/:id/comments", middleware.RequireAuth, controller.CreateComment)
 }

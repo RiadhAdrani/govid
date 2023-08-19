@@ -867,3 +867,47 @@ func AddView(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{})
 }
+
+type CreateCommentBody struct {
+	Text string `json:"text" binding:"required"`
+}
+
+func CreateComment(c *gin.Context) {
+	user, video, err := BeforeVideoAction(c, true)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "msg": "unable to create comment"})
+		return
+	}
+
+	body := CreateCommentBody{}
+
+	err = c.Bind(&body)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "msg": "invalid body"})
+		return
+	}
+
+	comment := schema.VideoComment{
+		Text: body.Text,
+		VideoAction: schema.VideoAction{
+			VideoId: video.Id,
+			Action: schema.Action{
+				UserId: user.Id,
+			},
+		},
+	}
+
+	res := config.DB.Save(&comment)
+
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": res.Error.Error(), "msg": "unable to write into database"})
+		return
+	}
+
+	comment.User = user
+	comment.Video = video
+
+	c.JSON(http.StatusCreated, gin.H{"data": comment, "msg": "comment created successfully"})
+}

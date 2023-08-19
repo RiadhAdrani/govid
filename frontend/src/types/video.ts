@@ -68,3 +68,11 @@ export interface UploadNextChunk {
   to: number;
   taskId: number;
 }
+
+export interface VideoComment extends VideoAction {
+  text: string;
+}
+
+export type CreateVideoCommentBody = Pick<VideoComment, 'text'>;
+
+export type CreateVideoCommentResponse = ApiResponse<VideoComment>;
