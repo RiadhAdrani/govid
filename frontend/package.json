@@ -15,6 +15,7 @@
     "typescript": "^5.0.2",
     "vite": "^4.4.8",
     "@iconify-json/mdi": "^1.1.54",
+    "@iconify-json/mdi-light": "1.1.7",
     "unocss": "^0.54.1"
   },
   "dependencies": {
