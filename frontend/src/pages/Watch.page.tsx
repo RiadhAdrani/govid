@@ -18,18 +18,12 @@ import {
   GetVideoCommentResponse,
   VideoComment,
 } from '../types/video';
+import Comment from '../components/Comment/Comment';
 
 export default () => {
   const { isAuthenticated, user } = useContext(UserContext);
-  const {
-    watchElementId,
-    setId,
-    toggleMiniPlayer,
-    data,
-    toggleVideoLike,
-    toggleVideoDislike,
-    dimensions,
-  } = useContext(PlayerContext);
+  const { watchElementId, setId, toggleMiniPlayer, data, toggleVideoLike, toggleVideoDislike } =
+    useContext(PlayerContext);
 
   const [expanded, setExpanded] = useState(false);
   const [comments, setComments] = useState<Array<VideoComment>>([]);
@@ -106,7 +100,7 @@ export default () => {
       <div class="flex-col flex-1 gap-3">
         <div id={watchElementId} class="relative w-100% aspect-video bg-zinc-900"></div>
         <div class="text-left col gap-4 m-t-2">
-          <h3 class="m-0">{data?.title ?? '...'}</h3>
+          <h3 class="m-0 bg-zinc-900 rounded p-3">{data?.title ?? '...'}</h3>
           <div class="row items-center justify-between">
             <div class="row gap-3">
               <img
@@ -162,7 +156,7 @@ export default () => {
               </div>
             </div>
           </div>
-          <div class={'relative p-3 col gap-2 bg-zinc-800 rounded-10px'}>
+          <div class={'relative p-3 col gap-2 bg-zinc-900 rounded'}>
             <div
               class={`grid`}
               style={{
@@ -185,58 +179,40 @@ export default () => {
               {expanded ? 'Show less' : 'Show more'}
             </button>
           </div>
+          <div class={['overflow-auto col gap-3 bg-zinc-900 p-3']}>
+            <h3 class="row gap-2">
+              <Icon icon="i-mdi-comment" /> Comments
+            </h3>
+            <div class="col gap-2">
+              <input
+                class={[
+                  'bg-transparent p-2 text-1.2em',
+                  'border-none border-b-1 border-b-solid border-b-zinc-700 focus:border-b-zinc-400',
+                  'focus:outline-none',
+                ]}
+                disabled={comment.loading}
+                onInput={(e) => (comment.text = e.currentTarget.value)}
+                value={comment.text}
+                placeholder="Write a new comment..."
+              />
+              <GButton
+                disabled={comment.loading}
+                class="self-end bg-green-700 rounded-5px row-center gap-2"
+                onClick={onComment}
+              >
+                <Icon icon="i-mdi-send" />
+                comment
+              </GButton>
+            </div>
+            <div class="col m-t-2 gap-2 text-start">
+              {comments.map((it) => (
+                <Comment key={it.id} comment={it} />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
       <div class="w-400px col h-full gap-2">
-        <div
-          class={['overflow-auto col gap-3 bg-zinc-900 p-x-4 p-y-3']}
-          style={{ height: `${dimensions.height}px`, boxSizing: 'border-box' }}
-        >
-          <h3 class="row gap-2">
-            <Icon icon="i-mdi-comment" /> Comments
-          </h3>
-          <div class="col gap-2">
-            <input
-              class={[
-                'bg-transparent p-2 text-1.2em',
-                'border-none border-b-1 border-b-solid border-b-zinc-700 focus:border-b-zinc-400',
-                'focus:outline-none',
-              ]}
-              disabled={comment.loading}
-              onInput={(e) => (comment.text = e.currentTarget.value)}
-              value={comment.text}
-              placeholder="Write a new comment..."
-            />
-            <GButton
-              disabled={comment.loading}
-              class="self-end bg-green-700 rounded-5px"
-              onClick={onComment}
-            >
-              comment
-            </GButton>
-          </div>
-          <div class="col m-t-2 gap-2 text-start">
-            {comments.map((it) => (
-              <div key={it.id} class="row gap-5 p-2 bg-zinc-800 rounded">
-                <img
-                  src="https://yt3.googleusercontent.com/ytc/AOPolaQ2iMmw9cWFFjnwa13nBwtZQbl-AqGYkkiTqNaTLg=s176-c-k-c0x00ffffff-no-rj-mo"
-                  class="h-30px w-30px rounded-50%"
-                />
-                <div class="col items-start gap-1 flex-1">
-                  <div class="row-center h-30px gap-2">
-                    <span>
-                      {it.user.firstName} {it.user.lastName}
-                    </span>
-                    <span class="text-zinc-400 text-[0.8em]">
-                      {new Date(it.createdAt).toDateString()}
-                    </span>
-                  </div>
-                  <div>{it.text}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
         <div class="bg-zinc-900 flex-1 rounded"></div>
       </div>
     </div>

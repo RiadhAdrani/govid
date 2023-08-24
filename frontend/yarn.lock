@@ -138,6 +138,13 @@
   resolved "https://registry.yarnpkg.com/@esbuild/win32-x64/-/win32-x64-0.18.18.tgz#914c007ab1dbd28ca84e79ee666adeee6ccf92b4"
   integrity sha512-eTSg/gC3p3tdjj4roDhe5xu94l1s2jMazP8u2FsYO8SEKvSpPOO71EucprDn/IuErDPvTFUhV9lTw5z5WJCRKQ==
 
+"@iconify-json/mdi-light@1.1.7":
+  version "1.1.7"
+  resolved "https://registry.yarnpkg.com/@iconify-json/mdi-light/-/mdi-light-1.1.7.tgz#4f4b4701dd4fcc1abbf67ea3ed7500637224a5e8"
+  integrity sha512-vzG+1gCku2lVKKMXjT2U8ZFZXPJd2UASblAQki7T6RcuXz/67Q4KtLk+MwXgiyBIDwVOacKYsMfm6NmiTVdZFA==
+  dependencies:
+    "@iconify/types" "*"
+
 "@iconify-json/mdi@^1.1.54":
   version "1.1.54"
   resolved "https://registry.yarnpkg.com/@iconify-json/mdi/-/mdi-1.1.54.tgz#343477417c15fceeaf0f32012d58a4a8d9791786"

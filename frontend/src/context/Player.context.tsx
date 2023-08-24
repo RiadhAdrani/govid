@@ -126,13 +126,24 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
 
   const windowSize = useWindowSize();
 
+  const controls = useReactive({
+    show: false,
+    volume: 1,
+    muted: false,
+    mini: false,
+    fullscreen: false,
+    theatre: false,
+    speed: 1,
+    sinceMouseMoved: Date.now(),
+  });
+
   const dimensions: IPlayerContext['dimensions'] = useMemo(() => {
     if (!videoElement) return { height: 0, width: 0 };
 
     const { height, width } = videoElement.getBoundingClientRect();
 
     return { height, width };
-  }, [container, windowSize, data]);
+  }, [container, windowSize, { ...controls }]);
 
   const storedSegmentsTime = useMemo(() => {
     return watchSegments.reduce((time, segment) => {
@@ -149,17 +160,6 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
     setWatchTime(0);
     setViewCounted(false);
   };
-
-  const controls = useReactive({
-    show: false,
-    volume: 1,
-    muted: false,
-    mini: false,
-    fullscreen: false,
-    theatre: false,
-    speed: 1,
-    sinceMouseMoved: Date.now(),
-  });
 
   const uid = useId();
 

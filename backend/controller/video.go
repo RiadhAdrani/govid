@@ -4,6 +4,7 @@ import (
 	"backend/config"
 	"backend/middleware"
 	"backend/schema"
+	"backend/utils"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -955,5 +956,134 @@ func GetComments(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": comments, "totalCount": commentsCount})
+	var commentsWithRepliesCount []struct {
+		schema.VideoComment
+
+		ReplyCount int
+	}
+
+	config.DB.Model(&schema.VideoComment{}).
+		Preload("User").
+		Joins("LEFT JOIN video_replies ON video_comments.id = video_replies.comment_id").
+		Select("video_comments.*, COUNT(video_replies.id) AS reply_count").
+		Where("video_comments.video_id = ?", video.Id).
+		Group("video_comments.id").
+		Find(&commentsWithRepliesCount)
+
+	c.JSON(http.StatusOK, gin.H{"data": commentsWithRepliesCount, "totalCount": commentsCount})
+}
+
+func DeleteComment(c *gin.Context) {
+	user, video, err := BeforeVideoAction(c, true)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error(), "msg": "something went wrong..."})
+		return
+	}
+
+	// parse comment id
+	commentId, err := utils.GetIdFromContext("comment", c)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error(), "msg": "something went wrong..."})
+		return
+	}
+
+	// check that comment is existing
+	comment := schema.VideoComment{}
+
+	err = config.DB.First(&comment, commentId).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"err": err.Error(), "msg": "comment does not exist"})
+		return
+	}
+
+	// check if user is the maker of the comment
+	if comment.UserId != user.Id {
+		c.JSON(http.StatusNotFound, gin.H{"msg": "comment does not exist"})
+		return
+	}
+
+	// double check with the video
+	if video.Id != comment.VideoId {
+		c.JSON(http.StatusNotFound, gin.H{"msg": "comment does not exist "})
+		return
+	}
+
+	// delete the comment
+	err = config.DB.Delete(&comment).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "something went wrong..."})
+		return
+	}
+
+	c.AbortWithStatus(http.StatusOK)
+}
+
+func UpdateComment(c *gin.Context) {
+
+	// ? body type
+	type UpdateCommentBody struct {
+		Text string `json:"text" binding:"required"`
+	}
+
+	user, video, err := BeforeVideoAction(c, true)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error(), "msg": "something went wrong..."})
+		return
+	}
+
+	// parse comment id
+	commentId, err := utils.GetIdFromContext("comment", c)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error(), "msg": "something went wrong..."})
+		return
+	}
+
+	// check that comment is existing
+	comment := schema.VideoComment{}
+
+	err = config.DB.First(&comment, commentId).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"err": err.Error(), "msg": "comment does not exist"})
+		return
+	}
+
+	// check if user is the maker of the comment
+	if comment.UserId != user.Id {
+		c.JSON(http.StatusNotFound, gin.H{"msg": "comment does not exist"})
+		return
+	}
+
+	// double check with the video
+	if video.Id != comment.VideoId {
+		c.JSON(http.StatusNotFound, gin.H{"msg": "comment does not exist"})
+		return
+	}
+
+	// parse body
+	body := UpdateCommentBody{}
+
+	err = c.Bind(&body)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error(), "msg": "unable to parse body"})
+		return
+	}
+
+	comment.Text = body.Text
+
+	err = config.DB.Save(&comment).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to update comment"})
+		return
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"data": comment, "msg": "comment updated successfully"})
 }
