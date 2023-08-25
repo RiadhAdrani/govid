@@ -12,12 +12,20 @@ import {
   useReactive,
   useState,
 } from '@riadh-adrani/ruvy';
-import { Video } from '../types/video';
+import {
+  CreateVideoCommentBody,
+  CreateVideoCommentResponse,
+  UpdateVideoCommentBody,
+  UpdateVideoCommentResponse,
+  Video,
+  VideoComment,
+} from '../types/video';
 import useApi from '../utils/api';
 import Player from '../components/Player/Player';
 import { UserContext } from './User.context';
 import { ApiResponse } from '../types/api';
 import useWindowSize from '../hooks/useWindowSize';
+import { UIContext } from './UI.context';
 
 export interface UseRefData<T = unknown> {
   value: T;
@@ -49,6 +57,7 @@ export interface IPlayerContext {
   miniPlayerId: string;
   videoElementId: string;
   watchElementId: string;
+  comments: Array<VideoComment>;
 
   dimensions: { height: number; width: number };
 
@@ -67,6 +76,10 @@ export interface IPlayerContext {
 
   toggleVideoLike: (v?: boolean) => void;
   toggleVideoDislike: (v?: boolean) => void;
+
+  editComment: (id: number, body: UpdateVideoCommentBody) => Promise<void>;
+  deleteComment: (id: number) => Promise<void>;
+  addComment: (body: CreateVideoCommentBody) => Promise<void>;
 }
 
 export const PlayerContext = createContext<IPlayerContext>({
@@ -103,9 +116,16 @@ export const PlayerContext = createContext<IPlayerContext>({
   toggleVideoDislike: () => 0,
   toggleVideoLike: () => 0,
   dimensions: { height: 0, width: 0 },
+
+  deleteComment: async () => undefined,
+  editComment: async () => undefined,
+  addComment: async () => undefined,
+
+  comments: [],
 });
 
 export const PlayerProvider = (props: PropsWithUtility<{}>) => {
+  const { showToast } = useContext(UIContext);
   const { isAuthenticated } = useContext(UserContext);
 
   const [videoElement, setVideElement] = useState<HTMLVideoElement | undefined>(undefined);
@@ -123,6 +143,57 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
   const [watchSegments, setWatchSegments] = useState<Array<{ from: number; to: number }>>([]);
 
   const [isViewCounted, setViewCounted] = useState(false);
+
+  const [comments, setComments] = useState<Array<VideoComment>>([]);
+
+  const deleteComment = async (commentId: number) => {
+    if (!isAuthenticated) return;
+
+    try {
+      await useApi.delete(`/videos/${id}/comments/${commentId}`);
+
+      setComments(comments.filter((it) => it.id !== commentId));
+    } catch (error) {
+      showToast({ component: 'Something went wrong', duration: 1500, type: 'danger' });
+    }
+  };
+
+  const editComment = async (commentId: number, body: UpdateVideoCommentBody) => {
+    if (!isAuthenticated) return;
+
+    try {
+      const res = await useApi.put<UpdateVideoCommentResponse>(
+        `/videos/${id}/comments/${commentId}`,
+        body
+      );
+
+      const updated = res.data.data;
+
+      if (updated) {
+        const n = comments.map((it) => (it.id === commentId ? { ...it, text: updated.text } : it));
+
+        setComments(n);
+      }
+    } catch (e) {
+      showToast({ component: 'Something went wrong', duration: 1500, type: 'danger' });
+    }
+  };
+
+  const addComment = async (body: CreateVideoCommentBody) => {
+    if (!isAuthenticated) return;
+
+    try {
+      const res = await useApi.post<CreateVideoCommentResponse>(`videos/${id}/comments`, body);
+
+      const comment = res.data.data;
+
+      if (comment) {
+        setComments([comment, ...comments]);
+      }
+    } catch (error) {
+      showToast({ component: 'Something went wrong', duration: 1500, type: 'danger' });
+    }
+  };
 
   const windowSize = useWindowSize();
 
@@ -450,6 +521,19 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
     useApi.post(`/videos/${id}/view`);
   }, [watchTime, isViewCounted]);
 
+  // get video comments
+  useEffect(() => {
+    if (!id) return;
+
+    useApi
+      .get<ApiResponse<Array<VideoComment>>>(`videos/${id}/comments?from=0&count=10`)
+      .then((it) => {
+        if (it.data.data) {
+          setComments(it.data.data);
+        }
+      });
+  }, id);
+
   return (
     <PlayerContext.Provider
       value={{
@@ -479,6 +563,10 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
         onPause,
         onEnded,
         dimensions,
+        editComment,
+        deleteComment,
+        addComment,
+        comments,
       }}
     >
       <Portal if={container !== undefined} container={container as Element}>
