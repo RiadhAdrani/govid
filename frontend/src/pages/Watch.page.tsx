@@ -12,21 +12,22 @@ import Icon from '../components/Icon/Icon';
 import { PlayerContext } from '../context/Player.context';
 import useApi from '../utils/api';
 import { UserContext } from '../context/User.context';
-import {
-  CreateVideoCommentBody,
-  CreateVideoCommentResponse,
-  GetVideoCommentResponse,
-  VideoComment,
-} from '../types/video';
 import Comment from '../components/Comment/Comment';
 
 export default () => {
   const { isAuthenticated, user } = useContext(UserContext);
-  const { watchElementId, setId, toggleMiniPlayer, data, toggleVideoLike, toggleVideoDislike } =
-    useContext(PlayerContext);
+  const {
+    comments,
+    addComment,
+    watchElementId,
+    setId,
+    toggleMiniPlayer,
+    data,
+    toggleVideoLike,
+    toggleVideoDislike,
+  } = useContext(PlayerContext);
 
   const [expanded, setExpanded] = useState(false);
-  const [comments, setComments] = useState<Array<VideoComment>>([]);
 
   const { v } = getSearchParams();
 
@@ -51,41 +52,18 @@ export default () => {
 
   const comment = useReactive({ text: '', loading: false, error: '' });
 
-  const onComment = () => {
-    if (!isAuthenticated) return;
-
+  const onComment = async () => {
     comment.loading = true;
 
-    const body: CreateVideoCommentBody = { text: comment.text };
+    try {
+      await addComment({ text: comment.text });
 
-    useApi
-      .post<CreateVideoCommentResponse>(`/videos/${data?.id}/comments`, body)
-      .then((res) => {
-        if (!res.data.data) return;
-
-        comment.text = '';
-
-        setComments([res.data.data, ...comments]);
-      })
-      .catch((e) => {
-        comment.error = e;
-      })
-      .finally(() => {
-        comment.loading = false;
-      });
+      comment.text = '';
+    } catch (error) {
+    } finally {
+      comment.loading = false;
+    }
   };
-
-  useEffect(() => {
-    if (data?.id === undefined) return;
-
-    useApi
-      .get<GetVideoCommentResponse>(`/videos/${data.id}/comments?from=0&count=10`)
-      .then((res) => {
-        if (!res.data.data) return;
-
-        setComments(res.data.data);
-      });
-  }, data?.id);
 
   useEffect(() => {
     if (v) {

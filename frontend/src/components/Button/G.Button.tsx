@@ -8,7 +8,7 @@ export default (props: GButtonProps) => {
       {...props}
       if
       class={joinClasses(
-        ['p-x-2 p-y-2 rounded-15px', 'hover:opacity-90', 'active:opacity-70'],
+        ['p-x-2 p-y-2 rounded', 'hover:opacity-90', 'active:opacity-70'],
         props.class
       )}
     >

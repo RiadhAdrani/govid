@@ -1047,7 +1047,7 @@ func UpdateComment(c *gin.Context) {
 	// check that comment is existing
 	comment := schema.VideoComment{}
 
-	err = config.DB.First(&comment, commentId).Error
+	err = config.DB.Preload("User").First(&comment, commentId).Error
 
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"err": err.Error(), "msg": "comment does not exist"})
@@ -1085,5 +1085,5 @@ func UpdateComment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"data": comment, "msg": "comment updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"data": comment, "msg": "comment updated successfully"})
 }
