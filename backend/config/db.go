@@ -53,8 +53,12 @@ func ConnectDB() {
 }
 
 func SyncDB() {
+	// users --------------------------------------------
+
 	DB.AutoMigrate(&schema.User{})
 	DB.AutoMigrate(&schema.Subscription{})
+
+	// videos -------------------------------------------
 
 	DB.AutoMigrate(&schema.Video{})
 
@@ -70,6 +74,8 @@ func SyncDB() {
 	DB.AutoMigrate(&schema.VideoComment{})
 	DB.AutoMigrate(&schema.VideoCommentLike{})
 	DB.AutoMigrate(&schema.VideoCommentDisLike{})
+
+	DB.AutoMigrate(&schema.VideoPinnedComment{})
 
 	DB.AutoMigrate(&schema.VideoReply{})
 	DB.AutoMigrate(&schema.VideoReplyLike{})

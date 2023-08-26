@@ -28,4 +28,8 @@ func VideoRoutes(router *gin.Engine) {
 	router.POST("/videos/:id/comments", middleware.RequireAuth, controller.CreateComment)
 	router.DELETE("/videos/:id/comments/:comment", middleware.RequireAuth, controller.DeleteComment)
 	router.PUT("/videos/:id/comments/:comment", middleware.RequireAuth, controller.UpdateComment)
+
+	router.POST("/videos/:id/comments/:comment/pin", middleware.RequireAuth, controller.PinComment)
+	router.DELETE("/videos/:id/comments/:comment/pin", middleware.RequireAuth, controller.UnpinComment)
+
 }

@@ -81,9 +81,16 @@ type VideoComment struct {
 
 type VideoCommentAction struct {
 	Comment   VideoComment `json:"comment" gorm:"foreignKey:CommentId"`
-	CommentId string       `json:"commentId" gorm:"not null"`
+	CommentId int          `json:"commentId" gorm:"not null"`
+
+	VideoId int   `json:"videoId" gorm:"not null"`
+	Video   Video `json:"video" gorm:"foreignKey:VideoId"`
 
 	Action
+}
+
+type VideoPinnedComment struct {
+	VideoCommentAction
 }
 
 type VideoCommentLike struct {

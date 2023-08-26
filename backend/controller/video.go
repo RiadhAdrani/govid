@@ -956,11 +956,13 @@ func GetComments(c *gin.Context) {
 		return
 	}
 
-	var commentsWithRepliesCount []struct {
+	type CommentsWithReplies struct {
 		schema.VideoComment
 
 		ReplyCount int
 	}
+
+	var commentsWithRepliesCount = []CommentsWithReplies{}
 
 	config.DB.Model(&schema.VideoComment{}).
 		Preload("User").
@@ -970,7 +972,25 @@ func GetComments(c *gin.Context) {
 		Group("video_comments.id").
 		Find(&commentsWithRepliesCount)
 
-	c.JSON(http.StatusOK, gin.H{"data": commentsWithRepliesCount, "totalCount": commentsCount})
+	body := make(utils.Map)
+
+	body["data"] = commentsWithRepliesCount
+
+	maybePinned := schema.VideoPinnedComment{}
+
+	config.DB.Where("video_id = ?", video.Id).First(&maybePinned)
+
+	pinned := schema.VideoComment{}
+
+	if maybePinned.Id != 0 {
+		err = config.DB.Preload("User").First(&pinned, maybePinned.CommentId).Error
+
+		if err == nil && pinned.Id != 0 {
+			body["pinned"] = pinned
+		}
+	}
+
+	c.JSON(http.StatusOK, body)
 }
 
 func DeleteComment(c *gin.Context) {
@@ -982,7 +1002,7 @@ func DeleteComment(c *gin.Context) {
 	}
 
 	// parse comment id
-	commentId, err := utils.GetIdFromContext("comment", c)
+	commentId, err := utils.GetIdParamFromContext("comment", c)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error(), "msg": "something went wrong..."})
@@ -1037,7 +1057,7 @@ func UpdateComment(c *gin.Context) {
 	}
 
 	// parse comment id
-	commentId, err := utils.GetIdFromContext("comment", c)
+	commentId, err := utils.GetIdParamFromContext("comment", c)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error(), "msg": "something went wrong..."})
@@ -1086,4 +1106,110 @@ func UpdateComment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": comment, "msg": "comment updated successfully"})
+}
+
+func PinComment(c *gin.Context) {
+	// get user and video
+	user, video, err := BeforeVideoAction(c, true)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return
+	}
+
+	// check if user is the owner of the video
+	if user.Id != video.OwnerId {
+		c.JSON(http.StatusForbidden, gin.H{"err": err.Error(), "msg": "you do not have the right to perform such action"})
+		return
+	}
+
+	// get comment id
+	id, err := utils.GetIdParamFromContext("comment", c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return
+	}
+
+	// check if comment exist
+	comment := schema.VideoComment{}
+
+	err = config.DB.Preload("User").First(&comment, id).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"err": err.Error(), "msg": "comment not found"})
+		return
+	}
+
+	pinned := schema.VideoPinnedComment{
+		VideoCommentAction: schema.VideoCommentAction{
+			VideoId:   video.Id,
+			CommentId: comment.Id,
+			Action: schema.Action{
+				UserId: user.Id,
+			},
+		},
+	}
+
+	// delete all other pinned comments
+	err = config.DB.Where("video_id = ?", video.Id).Delete(&schema.VideoPinnedComment{}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to remove previously pinned comment"})
+		return
+	}
+
+	// create new pin
+	err = config.DB.Save(&pinned).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to pin comment"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"msg": "comment pinned", "data": comment})
+}
+
+func UnpinComment(c *gin.Context) {
+	// get user and video
+	user, video, err := BeforeVideoAction(c, true)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return
+	}
+
+	// check if user is the owner of the video
+	if user.Id != video.OwnerId {
+		c.JSON(http.StatusForbidden, gin.H{"err": err.Error(), "msg": "you do not have the right to perform such action"})
+		return
+	}
+
+	// get comment id
+	id, err := utils.GetIdParamFromContext("comment", c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return
+	}
+
+	// check if comment exist
+	comment := schema.VideoComment{}
+
+	err = config.DB.Preload("User").First(&comment, id).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"err": err.Error(), "msg": "comment not found"})
+		return
+	}
+
+	// delete all pinned comments
+	err = config.DB.Where("video_id = ?", video.Id).Delete(&schema.VideoPinnedComment{}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to remove previously pinned comment"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"msg": "comment unpinned"})
 }

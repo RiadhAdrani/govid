@@ -80,4 +80,7 @@ export type CreateVideoCommentResponse = ApiResponse<VideoComment>;
 export type UpdateVideoCommentBody = Pick<VideoComment, 'text'>;
 export type UpdateVideoCommentResponse = ApiResponse<VideoComment>;
 
-export type GetVideoCommentResponse = ApiResponse<Array<VideoComment>, { totalCount: number }>;
+export type GetVideoCommentResponse = ApiResponse<
+  Array<VideoComment>,
+  { totalCount: number; pinned?: VideoComment }
+>;
