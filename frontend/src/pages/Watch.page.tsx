@@ -25,6 +25,7 @@ export default () => {
     data,
     toggleVideoLike,
     toggleVideoDislike,
+    pinnedComment,
   } = useContext(PlayerContext);
 
   const [expanded, setExpanded] = useState(false);
@@ -159,7 +160,7 @@ export default () => {
           </div>
           <div class={['overflow-auto col gap-3 bg-zinc-900 p-3']}>
             <h3 class="row gap-2">
-              <Icon icon="i-mdi-comment" /> Comments
+              <Icon icon="i-mdi-light-comment" /> <span>Comments ({comments.length})</span>
             </h3>
             <div class="col gap-2">
               <input
@@ -183,9 +184,18 @@ export default () => {
               </GButton>
             </div>
             <div class="col m-t-2 gap-2 text-start">
-              {comments.map((it) => (
-                <Comment key={it.id} comment={it} />
-              ))}
+              <div if={pinnedComment !== undefined} class="col m-b-5">
+                <div class="row items-center text-zinc-400 p-y-2 gap-2">
+                  <span class="text-0.8em">Pinned comment</span>
+                  <Icon icon="i-mdi-light-pin" />
+                </div>
+                <Comment comment={pinnedComment!} isPinned />
+              </div>
+              {comments
+                .filter((it) => !pinnedComment || it.id !== pinnedComment.id)
+                .map((it) => (
+                  <Comment key={it.id} comment={it} />
+                ))}
             </div>
           </div>
         </div>

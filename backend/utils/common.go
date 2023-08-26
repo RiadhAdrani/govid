@@ -29,7 +29,7 @@ func IsValidEmail(str string) bool {
 	return regexp.MustCompile(EmailRegEx).MatchString(str)
 }
 
-func GetIdFromContext(idName string, c *gin.Context) (int, error) {
+func GetIdParamFromContext(idName string, c *gin.Context) (int, error) {
 	id := 0
 
 	// convert videoId to int

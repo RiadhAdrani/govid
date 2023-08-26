@@ -1,0 +1,1 @@
+DROP TABLE video_pinned_comments

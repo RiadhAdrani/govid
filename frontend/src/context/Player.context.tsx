@@ -15,6 +15,7 @@ import {
 import {
   CreateVideoCommentBody,
   CreateVideoCommentResponse,
+  GetVideoCommentResponse,
   UpdateVideoCommentBody,
   UpdateVideoCommentResponse,
   Video,
@@ -58,6 +59,7 @@ export interface IPlayerContext {
   videoElementId: string;
   watchElementId: string;
   comments: Array<VideoComment>;
+  pinnedComment: VideoComment | undefined;
 
   dimensions: { height: number; width: number };
 
@@ -80,6 +82,8 @@ export interface IPlayerContext {
   editComment: (id: number, body: UpdateVideoCommentBody) => Promise<void>;
   deleteComment: (id: number) => Promise<void>;
   addComment: (body: CreateVideoCommentBody) => Promise<void>;
+  pinComment: (id: number) => Promise<void>;
+  unpinComment: (id: number) => Promise<void>;
 }
 
 export const PlayerContext = createContext<IPlayerContext>({
@@ -120,11 +124,14 @@ export const PlayerContext = createContext<IPlayerContext>({
   deleteComment: async () => undefined,
   editComment: async () => undefined,
   addComment: async () => undefined,
+  pinComment: async () => undefined,
+  unpinComment: async () => undefined,
 
   comments: [],
+  pinnedComment: undefined,
 });
 
-export const PlayerProvider = (props: PropsWithUtility<{}>) => {
+export const PlayerProvider = (props: PropsWithUtility) => {
   const { showToast } = useContext(UIContext);
   const { isAuthenticated } = useContext(UserContext);
 
@@ -145,55 +152,7 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
   const [isViewCounted, setViewCounted] = useState(false);
 
   const [comments, setComments] = useState<Array<VideoComment>>([]);
-
-  const deleteComment = async (commentId: number) => {
-    if (!isAuthenticated) return;
-
-    try {
-      await useApi.delete(`/videos/${id}/comments/${commentId}`);
-
-      setComments(comments.filter((it) => it.id !== commentId));
-    } catch (error) {
-      showToast({ component: 'Something went wrong', duration: 1500, type: 'danger' });
-    }
-  };
-
-  const editComment = async (commentId: number, body: UpdateVideoCommentBody) => {
-    if (!isAuthenticated) return;
-
-    try {
-      const res = await useApi.put<UpdateVideoCommentResponse>(
-        `/videos/${id}/comments/${commentId}`,
-        body
-      );
-
-      const updated = res.data.data;
-
-      if (updated) {
-        const n = comments.map((it) => (it.id === commentId ? { ...it, text: updated.text } : it));
-
-        setComments(n);
-      }
-    } catch (e) {
-      showToast({ component: 'Something went wrong', duration: 1500, type: 'danger' });
-    }
-  };
-
-  const addComment = async (body: CreateVideoCommentBody) => {
-    if (!isAuthenticated) return;
-
-    try {
-      const res = await useApi.post<CreateVideoCommentResponse>(`videos/${id}/comments`, body);
-
-      const comment = res.data.data;
-
-      if (comment) {
-        setComments([comment, ...comments]);
-      }
-    } catch (error) {
-      showToast({ component: 'Something went wrong', duration: 1500, type: 'danger' });
-    }
-  };
+  const [pinnedComment, setPinned] = useState<VideoComment | undefined>(undefined);
 
   const windowSize = useWindowSize();
 
@@ -222,16 +181,6 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
     }, 0);
   }, watchSegments);
 
-  const reset = () => {
-    setData(undefined);
-    setTimeRanges([]);
-    setLoadingState('loading');
-    setCurrentTime(0);
-    setPreviousTime(0);
-    setWatchTime(0);
-    setViewCounted(false);
-  };
-
   const uid = useId();
 
   const miniPlayerId = useMemo(() => `mini-player-el-${uid}`);
@@ -255,6 +204,95 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
 
     return (currentTime / duration) * 100;
   }, [videoElement, currentTime]);
+
+  const pinComment: IPlayerContext['pinComment'] = async (commentId) => {
+    if (!isAuthenticated) return;
+
+    try {
+      const res = await useApi.post<ApiResponse<VideoComment>>(
+        `/videos/${id}/comments/${commentId}/pin`
+      );
+
+      const pinned = res.data.data;
+
+      if (pinned) {
+        setPinned(pinned);
+      }
+    } catch (error) {}
+  };
+
+  const unpinComment: IPlayerContext['unpinComment'] = async (commentId) => {
+    if (!isAuthenticated) return;
+
+    try {
+      await useApi.delete(`/videos/${id}/comments/${commentId}/pin`);
+
+      setPinned(undefined);
+    } catch (error) {}
+  };
+
+  const deleteComment = async (commentId: number) => {
+    if (!isAuthenticated) return;
+
+    try {
+      await useApi.delete(`/videos/${id}/comments/${commentId}`);
+
+      setComments(comments.filter((it) => it.id !== commentId));
+    } catch (error) {
+      showToast({ component: 'Something went wrong', duration: 1500, type: 'danger' });
+    }
+  };
+
+  const editComment = async (commentId: number, body: UpdateVideoCommentBody) => {
+    if (!isAuthenticated) return;
+
+    try {
+      const res = await useApi.put<UpdateVideoCommentResponse>(
+        `/videos/${id}/comments/${commentId}`,
+        body
+      );
+
+      const updated = res.data.data;
+
+      if (updated) {
+        const n = comments.map((it) => (it.id === commentId ? { ...it, text: updated.text } : it));
+
+        if (pinnedComment && pinnedComment.id === commentId) {
+          setPinned({ ...pinnedComment, text: updated.text });
+        }
+
+        setComments(n);
+      }
+    } catch (e) {
+      showToast({ component: 'Something went wrong', duration: 1500, type: 'danger' });
+    }
+  };
+
+  const addComment = async (body: CreateVideoCommentBody) => {
+    if (!isAuthenticated) return;
+
+    try {
+      const res = await useApi.post<CreateVideoCommentResponse>(`videos/${id}/comments`, body);
+
+      const comment = res.data.data;
+
+      if (comment) {
+        setComments([comment, ...comments]);
+      }
+    } catch (error) {
+      showToast({ component: 'Something went wrong', duration: 1500, type: 'danger' });
+    }
+  };
+
+  const reset = () => {
+    setData(undefined);
+    setTimeRanges([]);
+    setLoadingState('loading');
+    setCurrentTime(0);
+    setPreviousTime(0);
+    setWatchTime(0);
+    setViewCounted(false);
+  };
 
   const onProgress: IPlayerContext['onProgress'] = () => {
     if (!videoElement?.duration) {
@@ -525,13 +563,15 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
   useEffect(() => {
     if (!id) return;
 
-    useApi
-      .get<ApiResponse<Array<VideoComment>>>(`videos/${id}/comments?from=0&count=10`)
-      .then((it) => {
-        if (it.data.data) {
-          setComments(it.data.data);
-        }
-      });
+    useApi.get<GetVideoCommentResponse>(`videos/${id}/comments?from=0&count=10`).then((it) => {
+      if (it.data.data) {
+        setComments(it.data.data);
+      }
+
+      if (it.data.pinned) {
+        setPinned(it.data.pinned);
+      }
+    });
   }, id);
 
   return (
@@ -567,6 +607,9 @@ export const PlayerProvider = (props: PropsWithUtility<{}>) => {
         deleteComment,
         addComment,
         comments,
+        pinnedComment,
+        pinComment,
+        unpinComment,
       }}
     >
       <Portal if={container !== undefined} container={container as Element}>

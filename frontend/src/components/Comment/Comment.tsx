@@ -5,48 +5,84 @@ import {
   useEffect,
   useMemo,
   useReactive,
+  useState,
 } from '@riadh-adrani/ruvy';
 import { VideoComment } from '../../types/video';
-import Icon from '../Icon/Icon';
 import { UserContext } from '../../context/User.context';
 import { PlayerContext } from '../../context/Player.context';
 import GButton from '../Button/G.Button';
+import CommentActionButton from './Comment.Action.Button';
 
 export interface CommentProps extends PropsWithUtility {
   comment: VideoComment;
+  isPinned?: boolean;
 }
 
 export default (props: CommentProps) => {
   const { isAuthenticated, user } = useContext(UserContext);
-  const { deleteComment, editComment } = useContext(PlayerContext);
+  const { deleteComment, editComment, data, pinComment, unpinComment } = useContext(PlayerContext);
+
+  const [showActions, setShowActions] = useState(false);
 
   const comment = props.comment;
 
   const edit = useReactive({ text: comment.text, is: false, loading: false });
 
-  const actions = useMemo(() => {
+  const ratingActions = useMemo(() => {
+    return [
+      { icon: 'i-mdi-light-thumb-up', onClick: () => {}, tooltip: 'Like' },
+      { icon: 'i-mdi-light-thumb-down', onClick: () => {}, tooltip: 'Dislike' },
+      { icon: 'i-mdi-light-heart', onClick: () => {}, tooltip: 'Heart' },
+      { icon: 'i-mdi-reply', onClick: () => {}, tooltip: 'Reply' },
+    ];
+  }, [props.comment, isAuthenticated, user]);
+
+  const editActions = useMemo(() => {
+    if (!isAuthenticated || user?.id !== comment.userId) {
+      return [];
+    }
+
     const items = [
-      { icon: 'i-mdi-light-thumb-up', onClick: () => {} },
-      { icon: 'i-mdi-light-thumb-down', onClick: () => {} },
-      { icon: 'i-mdi-light-heart', onClick: () => {} },
-      { icon: 'i-mdi-reply', onClick: () => {} },
+      {
+        icon: 'i-mdi-light-pencil',
+        onClick: () => (edit.is = true),
+        tooltip: 'Edit',
+      },
+      {
+        icon: 'i-mdi-light-delete',
+        onClick: () => deleteComment(comment.id),
+        tooltip: 'Delete',
+      },
     ];
 
-    if (isAuthenticated && user?.id === comment.userId) {
-      items.push(
-        {
-          icon: 'i-mdi-light-pencil',
-          onClick: () => (edit.is = true),
-        },
-        {
-          icon: 'i-mdi-light-delete',
-          onClick: () => deleteComment(comment.id),
-        }
-      );
+    return items;
+  }, [props.comment, isAuthenticated, user, data]);
+
+  const ownerActions = useMemo(() => {
+    if (!isAuthenticated || !user) {
+      return [];
+    }
+
+    const items = [];
+
+    if (user.id === data?.owner.id) {
+      if (!props.isPinned) {
+        items.push({
+          icon: 'i-mdi-light-pin',
+          onClick: () => pinComment(comment.id),
+          tooltip: 'Pin',
+        });
+      } else {
+        items.push({
+          icon: 'i-mdi-light-pin-off',
+          onClick: () => unpinComment(comment.id),
+          tooltip: 'Unpin',
+        });
+      }
     }
 
     return items;
-  }, [props.comment, isAuthenticated, user]);
+  }, [props.comment, isAuthenticated, user, data, props.isPinned]);
 
   useEffect(() => {
     edit.text = comment.text;
@@ -63,7 +99,14 @@ export default (props: CommentProps) => {
   };
 
   return (
-    <div class="row gap-5 p-2 bg-zinc-800 rounded">
+    <div
+      class={[
+        'row gap-5 p-2 bg-zinc-800 rounded',
+        props.isPinned && 'border-solid border-1px  border-zinc-600',
+      ]}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
       <img
         src="https://yt3.googleusercontent.com/ytc/AOPolaQ2iMmw9cWFFjnwa13nBwtZQbl-AqGYkkiTqNaTLg=s176-c-k-c0x00ffffff-no-rj-mo"
         class="h-30px w-30px rounded-50%"
@@ -103,17 +146,38 @@ export default (props: CommentProps) => {
         <Fragment else>
           <div>{comment.text}</div>
           <div class="row items-center gap-1.5 m-y-1.5">
-            {actions.map((it) => (
-              <div
-                key={it.icon}
-                class={
-                  'col-center cursor-pointer hover:bg-zinc-700 rounded-full p-1.5 aspect-square'
-                }
-                onClick={it.onClick}
-              >
-                <Icon icon={it.icon} />
-              </div>
-            ))}
+            <>
+              {ratingActions.map((it) => (
+                <CommentActionButton
+                  key={it.icon}
+                  icon={it.icon}
+                  onClick={it.onClick}
+                  tooltip={it.tooltip}
+                />
+              ))}
+            </>
+            <>
+              {editActions.map((it) => (
+                <CommentActionButton
+                  key={it.icon}
+                  icon={it.icon}
+                  tooltip={it.tooltip}
+                  onClick={it.onClick}
+                  classes={[showActions ? 'opacity-100' : 'opacity-0']}
+                />
+              ))}
+            </>
+            <>
+              {ownerActions.map((it) => (
+                <CommentActionButton
+                  key={it.icon}
+                  icon={it.icon}
+                  tooltip={it.tooltip}
+                  onClick={it.onClick}
+                  classes={[showActions ? 'opacity-100' : 'opacity-0']}
+                />
+              ))}
+            </>
           </div>
         </Fragment>
       </div>
