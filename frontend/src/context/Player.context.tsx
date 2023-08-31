@@ -27,6 +27,7 @@ import { UserContext } from './User.context';
 import { ApiResponse } from '../types/api';
 import useWindowSize from '../hooks/useWindowSize';
 import { UIContext } from './UI.context';
+import { pick } from '@riadh-adrani/utils';
 
 export interface UseRefData<T = unknown> {
   value: T;
@@ -82,8 +83,18 @@ export interface IPlayerContext {
   editComment: (id: number, body: UpdateVideoCommentBody) => Promise<void>;
   deleteComment: (id: number) => Promise<void>;
   addComment: (body: CreateVideoCommentBody) => Promise<void>;
+
   pinComment: (id: number) => Promise<void>;
   unpinComment: (id: number) => Promise<void>;
+
+  likeComment: (id: number) => Promise<void>;
+  unlikeComment: (id: number) => Promise<void>;
+
+  dislikeComment: (id: number) => Promise<void>;
+  unDislikeComment: (id: number) => Promise<void>;
+
+  heartComment: (id: number) => Promise<void>;
+  unHeartComment: (id: number) => Promise<void>;
 }
 
 export const PlayerContext = createContext<IPlayerContext>({
@@ -127,13 +138,29 @@ export const PlayerContext = createContext<IPlayerContext>({
   pinComment: async () => undefined,
   unpinComment: async () => undefined,
 
+  likeComment: async () => undefined,
+  unlikeComment: async () => undefined,
+  dislikeComment: async () => undefined,
+  unDislikeComment: async () => undefined,
+  heartComment: async () => undefined,
+  unHeartComment: async () => undefined,
+
   comments: [],
   pinnedComment: undefined,
 });
 
 export const PlayerProvider = (props: PropsWithUtility) => {
+  /**
+     ███████╗████████╗ █████╗ ████████╗███████╗
+     ██╔════╝╚══██╔══╝██╔══██╗╚══██╔══╝██╔════╝
+     ███████╗   ██║   ███████║   ██║   █████╗  
+     ╚════██║   ██║   ██╔══██║   ██║   ██╔══╝  
+     ███████║   ██║   ██║  ██║   ██║   ███████╗
+     ╚══════╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚══════╝                                   
+   */
+
   const { showToast } = useContext(UIContext);
-  const { isAuthenticated } = useContext(UserContext);
+  const { isAuthenticated, user } = useContext(UserContext);
 
   const [videoElement, setVideElement] = useState<HTMLVideoElement | undefined>(undefined);
 
@@ -204,6 +231,138 @@ export const PlayerProvider = (props: PropsWithUtility) => {
 
     return (currentTime / duration) * 100;
   }, [videoElement, currentTime]);
+
+  /**
+    ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗
+    ████╗ ████║██╔════╝╚══██╔══╝██║  ██║██╔═══██╗██╔══██╗██╔════╝
+    ██╔████╔██║█████╗     ██║   ███████║██║   ██║██║  ██║███████╗
+    ██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██║   ██║██║  ██║╚════██║
+    ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
+    ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝                                                         
+   */
+
+  const likeComment: IPlayerContext['likeComment'] = async (commentId) => {
+    if (!isAuthenticated) return;
+
+    try {
+      await useApi.post(`/videos/${id}/comments/${commentId}/like`);
+
+      // update comments
+      setComments(
+        comments.map((it) => {
+          if (it.id !== commentId) return it;
+
+          // remove if dislike
+          if (it.isDisliked) {
+            it.dislikeCount = it.dislikeCount - 1;
+            it.isDisliked = false;
+          }
+
+          return { ...it, likeCount: it.likeCount + 1, isLiked: true };
+        })
+      );
+    } catch (error) {
+      showToast({ component: 'Unable to like comment', duration: 2000, type: 'danger' });
+    }
+  };
+
+  const unlikeComment: IPlayerContext['unlikeComment'] = async (commentId) => {
+    if (!isAuthenticated) return;
+    try {
+      await useApi.delete(`/videos/${id}/comments/${commentId}/like`);
+
+      // update comments
+      setComments(
+        comments.map((it) => {
+          if (it.id !== commentId) return it;
+
+          return { ...it, likeCount: it.likeCount - 1, isLiked: false };
+        })
+      );
+    } catch (error) {
+      showToast({ component: 'Unable to unlike comment', duration: 2000, type: 'danger' });
+    }
+  };
+
+  const dislikeComment: IPlayerContext['dislikeComment'] = async (commentId) => {
+    if (!isAuthenticated) return;
+    try {
+      await useApi.post(`/videos/${id}/comments/${commentId}/dislike`);
+
+      // update comments
+      setComments(
+        comments.map((it) => {
+          if (it.id !== commentId) return it;
+
+          // remove if dislike
+          if (it.isLiked) {
+            it.likeCount = it.likeCount - 1;
+            it.isLiked = false;
+          }
+
+          return { ...it, dislikeCount: it.dislikeCount + 1, isDisliked: true };
+        })
+      );
+    } catch (error) {
+      showToast({ component: 'Unable to dislike comment', duration: 2000, type: 'danger' });
+    }
+  };
+
+  const unDislikeComment: IPlayerContext['unDislikeComment'] = async (commentId) => {
+    if (!isAuthenticated) return;
+    try {
+      await useApi.delete(`/videos/${id}/comments/${commentId}/dislike`);
+
+      // update comments
+      setComments(
+        comments.map((it) => {
+          if (it.id !== commentId) return it;
+
+          return { ...it, dislikeCount: it.dislikeCount - 1, isDisliked: false };
+        })
+      );
+    } catch (error) {
+      showToast({ component: 'Unable to undislike comment', duration: 2000, type: 'danger' });
+    }
+  };
+
+  const heartComment: IPlayerContext['heartComment'] = async (commentId) => {
+    if (!isAuthenticated || data?.owner.id !== user?.id) return;
+
+    try {
+      await useApi.post(`/videos/${id}/comments/${commentId}/heart`);
+
+      // update comments
+      setComments(
+        comments.map((it) => {
+          if (it.id !== commentId) return it;
+
+          return { ...it, isHearted: true };
+        })
+      );
+    } catch (error) {
+      showToast({ component: 'Unable to heart comment', duration: 2000, type: 'danger' });
+    }
+  };
+
+  const unHeartComment: IPlayerContext['unHeartComment'] = async (commentId) => {
+    if (!isAuthenticated || data?.owner.id !== user?.id) return;
+
+    try {
+      await useApi.delete(`/videos/${id}/comments/${commentId}/heart`);
+
+      // update comments
+      setComments(
+        comments.map((it) => {
+          if (it.id !== commentId) return it;
+
+          return { ...it, isHearted: false };
+        })
+      );
+    } catch (error) {
+      showToast({ component: 'Unable to unheart comment', duration: 2000, type: 'danger' });
+    }
+  };
 
   const pinComment: IPlayerContext['pinComment'] = async (commentId) => {
     if (!isAuthenticated) return;
@@ -459,6 +618,15 @@ export const PlayerProvider = (props: PropsWithUtility) => {
     toggleVideoRating(false, action);
   };
 
+  /**
+    ███████╗███████╗███████╗███████╗ ██████╗████████╗███████╗
+    ██╔════╝██╔════╝██╔════╝██╔════╝██╔════╝╚══██╔══╝██╔════╝
+    █████╗  █████╗  █████╗  █████╗  ██║        ██║   ███████╗
+    ██╔══╝  ██╔══╝  ██╔══╝  ██╔══╝  ██║        ██║   ╚════██║
+    ███████╗██║     ██║     ███████╗╚██████╗   ██║   ███████║
+    ╚══════╝╚═╝     ╚═╝     ╚══════╝ ╚═════╝   ╚═╝   ╚══════╝                                                    
+   */
+
   useEffect(() => {
     const miniEl = document.querySelector<HTMLElement>(`#${miniPlayerId}`);
     setTimeout(() => {
@@ -564,6 +732,12 @@ export const PlayerProvider = (props: PropsWithUtility) => {
     if (!id) return;
 
     useApi.get<GetVideoCommentResponse>(`videos/${id}/comments?from=0&count=10`).then((it) => {
+      console.log(
+        it.data.data?.map((it) =>
+          pick(it, 'id', 'dislikeCount', 'isDisliked', 'isHearted', 'likeCount', 'isLiked')
+        )
+      );
+
       if (it.data.data) {
         setComments(it.data.data);
       }
@@ -610,6 +784,13 @@ export const PlayerProvider = (props: PropsWithUtility) => {
         pinnedComment,
         pinComment,
         unpinComment,
+
+        likeComment,
+        unlikeComment,
+        dislikeComment,
+        unDislikeComment,
+        heartComment,
+        unHeartComment,
       }}
     >
       <Portal if={container !== undefined} container={container as Element}>

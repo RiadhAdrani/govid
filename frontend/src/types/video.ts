@@ -72,6 +72,13 @@ export interface UploadNextChunk {
 
 export interface VideoComment extends VideoAction {
   text: string;
+
+  isLiked: boolean;
+  isDisliked: boolean;
+  isHearted: boolean;
+  likeCount: number;
+  dislikeCount: number;
+  replyCount: number;
 }
 
 export type CreateVideoCommentBody = Pick<VideoComment, 'text'>;

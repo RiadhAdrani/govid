@@ -7,6 +7,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -49,6 +50,8 @@ func ConnectDB() {
 	}
 
 	DB = db
+
+	DB.Logger.LogMode(logger.Info)
 
 }
 

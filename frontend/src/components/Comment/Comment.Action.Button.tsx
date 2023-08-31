@@ -7,6 +7,7 @@ export default (
     icon: string;
     onClick: () => void;
     classes?: Arrayable<string>;
+    count?: number;
     tooltip: string;
   }>
 ) => {
@@ -14,12 +15,15 @@ export default (
     <div
       title={props.tooltip}
       class={joinClasses(
-        ['col-center cursor-pointer hover:bg-zinc-700 rounded-full p-1.5 aspect-square', ,],
+        ['row-center cursor-pointer hover:bg-zinc-700 rounded gap-2 p-1.5', ,],
         props.classes
       )}
       onClick={props.onClick}
     >
       <Icon icon={props.icon} />
+      <span if={props.count !== undefined} class="text-[0.8em]">
+        {props.count}
+      </span>
     </div>
   );
 };
