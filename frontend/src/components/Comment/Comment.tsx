@@ -20,7 +20,19 @@ export interface CommentProps extends PropsWithUtility {
 
 export default (props: CommentProps) => {
   const { isAuthenticated, user } = useContext(UserContext);
-  const { deleteComment, editComment, data, pinComment, unpinComment } = useContext(PlayerContext);
+  const {
+    deleteComment,
+    editComment,
+    data,
+    pinComment,
+    unpinComment,
+    likeComment,
+    unlikeComment,
+    dislikeComment,
+    heartComment,
+    unDislikeComment,
+    unHeartComment,
+  } = useContext(PlayerContext);
 
   const [showActions, setShowActions] = useState(false);
 
@@ -28,14 +40,34 @@ export default (props: CommentProps) => {
 
   const edit = useReactive({ text: comment.text, is: false, loading: false });
 
-  const ratingActions = useMemo(() => {
-    return [
-      { icon: 'i-mdi-light-thumb-up', onClick: () => {}, tooltip: 'Like' },
-      { icon: 'i-mdi-light-thumb-down', onClick: () => {}, tooltip: 'Dislike' },
-      { icon: 'i-mdi-light-heart', onClick: () => {}, tooltip: 'Heart' },
-      { icon: 'i-mdi-reply', onClick: () => {}, tooltip: 'Reply' },
-    ];
-  }, [props.comment, isAuthenticated, user]);
+  const ratingActions = [
+    {
+      icon: comment.isLiked ? 'i-mdi-thumb-up text-green-600' : 'i-mdi-light-thumb-up',
+      onClick: () => (comment.isLiked ? unlikeComment(comment.id) : likeComment(comment.id)),
+      tooltip: 'Like',
+      count: comment.likeCount > 0 ? comment.likeCount : undefined,
+    },
+    {
+      icon: comment.isDisliked ? 'i-mdi-thumb-down text-green-600' : 'i-mdi-light-thumb-down',
+      onClick: () =>
+        comment.isDisliked ? unDislikeComment(comment.id) : dislikeComment(comment.id),
+      tooltip: 'Like',
+      count: comment.dislikeCount > 0 ? comment.dislikeCount : undefined,
+    },
+    {
+      icon: comment.isHearted ? 'i-mdi-heart text-red-600' : 'i-mdi-light-heart',
+      onClick: () => (comment.isHearted ? unHeartComment(comment.id) : heartComment(comment.id)),
+      tooltip: comment.isHearted
+        ? `Hearted by ${data?.owner.firstName} ${data?.owner.lastName}`
+        : '',
+    },
+    {
+      icon: 'i-mdi-reply',
+      onClick: () => {},
+      tooltip: 'Reply',
+      count: comment.replyCount > 0 ? comment.replyCount : undefined,
+    },
+  ];
 
   const editActions = useMemo(() => {
     if (!isAuthenticated || user?.id !== comment.userId) {
@@ -145,18 +177,19 @@ export default (props: CommentProps) => {
         </div>
         <Fragment else>
           <div>{comment.text}</div>
-          <div class="row items-center gap-1.5 m-y-1.5">
-            <>
+          <div class="row items-center gap-5 m-y-1.5">
+            <div class="row items-center gap-1">
               {ratingActions.map((it) => (
                 <CommentActionButton
                   key={it.icon}
                   icon={it.icon}
                   onClick={it.onClick}
                   tooltip={it.tooltip}
+                  count={it.count}
                 />
               ))}
-            </>
-            <>
+            </div>
+            <div class="row items-center gap-1">
               {editActions.map((it) => (
                 <CommentActionButton
                   key={it.icon}
@@ -166,8 +199,8 @@ export default (props: CommentProps) => {
                   classes={[showActions ? 'opacity-100' : 'opacity-0']}
                 />
               ))}
-            </>
-            <>
+            </div>
+            <div class="row items-center gap-1">
               {ownerActions.map((it) => (
                 <CommentActionButton
                   key={it.icon}
@@ -177,7 +210,7 @@ export default (props: CommentProps) => {
                   classes={[showActions ? 'opacity-100' : 'opacity-0']}
                 />
               ))}
-            </>
+            </div>
           </div>
         </Fragment>
       </div>

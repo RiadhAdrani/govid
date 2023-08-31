@@ -257,7 +257,7 @@ func ProcessVideo(taskId int) {
 }
 
 func UploadVideoChunk(c *gin.Context) {
-	user, video, err := BeforeVideoAction(c, true)
+	user, video, err := beforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -439,7 +439,7 @@ func UploadVideoChunk(c *gin.Context) {
 }
 
 func GetVideoUploadProgress(c *gin.Context) {
-	_, video, err := BeforeVideoAction(c, true)
+	_, video, err := beforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -625,7 +625,7 @@ func WatchVideo(c *gin.Context) {
 	})
 }
 
-func BeforeVideoAction(c *gin.Context, doNeedUser bool) (schema.User, schema.Video, error) {
+func beforeVideoAction(c *gin.Context, doNeedUser bool) (schema.User, schema.Video, error) {
 	user := schema.User{}
 	video := schema.Video{}
 
@@ -660,7 +660,7 @@ func BeforeVideoAction(c *gin.Context, doNeedUser bool) (schema.User, schema.Vid
 }
 
 func LikeOrDislikeVideo(c *gin.Context, isLike bool) {
-	user, video, err := BeforeVideoAction(c, true)
+	user, video, err := beforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -733,7 +733,7 @@ func LikeOrDislikeVideo(c *gin.Context, isLike bool) {
 }
 
 func UnLikeOrDislikeVideo(c *gin.Context, isLike bool) {
-	user, video, err := BeforeVideoAction(c, true)
+	user, video, err := beforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -791,7 +791,7 @@ func UnDisLikeVideo(c *gin.Context) {
 }
 
 func AddWatchTime(c *gin.Context) {
-	user, video, _ := BeforeVideoAction(c, false)
+	user, video, _ := beforeVideoAction(c, false)
 
 	if video.Id == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "video not found", "id": video.Id})
@@ -832,7 +832,7 @@ func AddWatchTime(c *gin.Context) {
 }
 
 func AddView(c *gin.Context) {
-	_, video, _ := BeforeVideoAction(c, false)
+	_, video, _ := beforeVideoAction(c, false)
 
 	if video.Id == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "video not found", "id": video.Id})
@@ -874,7 +874,7 @@ type CreateCommentBody struct {
 }
 
 func CreateComment(c *gin.Context) {
-	user, video, err := BeforeVideoAction(c, true)
+	user, video, err := beforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "msg": "unable to create comment"})
@@ -913,8 +913,45 @@ func CreateComment(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"data": comment, "msg": "comment created successfully"})
 }
 
+func GetComment(id int, c *gin.Context) (schema.VideoComment, error) {
+	_, video, err := beforeVideoAction(c, false)
+
+	user := middleware.GetUserFromContext(c)
+
+	comment := schema.VideoComment{}
+
+	if err != nil {
+		return comment, err
+	}
+
+	err = config.DB.Model(&schema.VideoComment{}).
+		Preload("User").
+		Select(`
+	video_comments.*,
+	COUNT(video_comment_likes.id) AS like_count,
+	COUNT(video_comment_dis_likes.id) AS dislike_count,
+	COUNT(video_replies.id) AS reply_count,
+	CASE WHEN SUM(CASE WHEN video_comment_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_liked,
+	CASE WHEN SUM(CASE WHEN video_comment_dis_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_disliked
+	`, user.Id, user.Id).
+		Joins("LEFT JOIN video_comment_likes ON video_comments.id = video_comment_likes.comment_id AND video_comment_likes.deleted_at IS NULL").
+		Joins("LEFT JOIN video_comment_dis_likes ON video_comments.id = video_comment_dis_likes.comment_id AND video_comment_dis_likes.deleted_at IS NULL").
+		Joins("LEFT JOIN video_replies ON video_comments.id = video_replies.comment_id").
+		Where("video_comments.video_id = ?", video.Id).
+		Group("video_comments.id").
+		First(&comment).Error
+
+	if err != nil {
+		return comment, err
+	}
+
+	return comment, nil
+}
+
 func GetComments(c *gin.Context) {
-	_, video, err := BeforeVideoAction(c, false)
+	_, video, err := beforeVideoAction(c, false)
+
+	user := middleware.GetUserFromContext(c)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "msg": "couldn't fetch comments"})
@@ -947,34 +984,35 @@ func GetComments(c *gin.Context) {
 		return
 	}
 
-	comments := []schema.VideoComment{}
+	var comments = []schema.VideoComment{}
 
-	err = config.DB.Preload("User").Limit(count).Offset(from).Where("video_id = ?", video.Id).Find(&comments).Error
+	err = config.DB.Model(&schema.VideoComment{}).
+		Preload("User").
+		Limit(count).
+		Offset(from).
+		Select(`
+		video_comments.*,
+		COUNT(video_comment_likes.id) AS like_count,
+		COUNT(video_comment_dis_likes.id) AS dislike_count,
+		COUNT(video_replies.id) AS reply_count,
+		CASE WHEN SUM(CASE WHEN video_comment_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_liked,
+		CASE WHEN SUM(CASE WHEN video_comment_dis_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_disliked
+		`, user.Id, user.Id).
+		Joins("LEFT JOIN video_comment_likes ON video_comments.id = video_comment_likes.comment_id AND video_comment_likes.deleted_at IS NULL").
+		Joins("LEFT JOIN video_comment_dis_likes ON video_comments.id = video_comment_dis_likes.comment_id AND video_comment_dis_likes.deleted_at IS NULL").
+		Joins("LEFT JOIN video_replies ON video_comments.id = video_replies.comment_id").
+		Where("video_comments.video_id = ?", video.Id).
+		Group("video_comments.id").
+		Find(&comments).Error
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"err": err, "msg": "something went wrong..."})
 		return
 	}
 
-	type CommentsWithReplies struct {
-		schema.VideoComment
-
-		ReplyCount int
-	}
-
-	var commentsWithRepliesCount = []CommentsWithReplies{}
-
-	config.DB.Model(&schema.VideoComment{}).
-		Preload("User").
-		Joins("LEFT JOIN video_replies ON video_comments.id = video_replies.comment_id").
-		Select("video_comments.*, COUNT(video_replies.id) AS reply_count").
-		Where("video_comments.video_id = ?", video.Id).
-		Group("video_comments.id").
-		Find(&commentsWithRepliesCount)
-
 	body := make(utils.Map)
 
-	body["data"] = commentsWithRepliesCount
+	body["data"] = comments
 
 	maybePinned := schema.VideoPinnedComment{}
 
@@ -983,7 +1021,7 @@ func GetComments(c *gin.Context) {
 	pinned := schema.VideoComment{}
 
 	if maybePinned.Id != 0 {
-		err = config.DB.Preload("User").First(&pinned, maybePinned.CommentId).Error
+		pinned, err = GetComment(maybePinned.Id, c)
 
 		if err == nil && pinned.Id != 0 {
 			body["pinned"] = pinned
@@ -994,7 +1032,7 @@ func GetComments(c *gin.Context) {
 }
 
 func DeleteComment(c *gin.Context) {
-	user, video, err := BeforeVideoAction(c, true)
+	user, video, err := beforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error(), "msg": "something went wrong..."})
@@ -1049,7 +1087,7 @@ func UpdateComment(c *gin.Context) {
 		Text string `json:"text" binding:"required"`
 	}
 
-	user, video, err := BeforeVideoAction(c, true)
+	user, video, err := beforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error(), "msg": "something went wrong..."})
@@ -1110,7 +1148,7 @@ func UpdateComment(c *gin.Context) {
 
 func PinComment(c *gin.Context) {
 	// get user and video
-	user, video, err := BeforeVideoAction(c, true)
+	user, video, err := beforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
@@ -1172,7 +1210,7 @@ func PinComment(c *gin.Context) {
 
 func UnpinComment(c *gin.Context) {
 	// get user and video
-	user, video, err := BeforeVideoAction(c, true)
+	user, video, err := beforeVideoAction(c, true)
 
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
@@ -1212,4 +1250,212 @@ func UnpinComment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"msg": "comment unpinned"})
+}
+
+func beforeVideoCommentAction(c *gin.Context) (schema.User, schema.Video, schema.VideoComment, error) {
+	comment := schema.VideoComment{}
+
+	_, video, err := beforeVideoAction(c, true)
+
+	user := middleware.GetUserFromContext(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return user, video, comment, err
+	}
+
+	// get comment id
+	id, err := utils.GetIdParamFromContext("comment", c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return user, video, comment, err
+	}
+
+	err = config.DB.Preload("User").First(&comment, id).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"err": err.Error(), "msg": "comment not found"})
+		return user, video, comment, err
+	}
+
+	return user, video, comment, err
+}
+
+func LikeComment(c *gin.Context) {
+	// get user and video
+	user, video, comment, err := beforeVideoCommentAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return
+	}
+
+	commentLike := schema.VideoCommentLike{}
+
+	// check if already liked
+	config.DB.Where("user_id = ? AND comment_id = ?", user.Id, comment.Id).First(&commentLike)
+
+	if commentLike.Id != 0 {
+		c.JSON(http.StatusConflict, gin.H{"err": "comment already liked"})
+		return
+	}
+
+	// delete user's dislike on the comment
+	err = config.DB.Where("user_id = ? AND comment_id = ?", user.Id, comment.Id).Delete(&schema.VideoCommentDisLike{}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to remove dislike"})
+		return
+	}
+
+	// create a new like entry
+	commentLike.VideoId = video.Id
+	commentLike.UserId = user.Id
+	commentLike.CommentId = comment.Id
+
+	err = config.DB.Save(&commentLike).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to create like entry"})
+		return
+	}
+
+	c.AbortWithStatus(http.StatusCreated)
+}
+
+func UnLikeComment(c *gin.Context) {
+	// get user and video
+	user, _, comment, err := beforeVideoCommentAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return
+	}
+
+	commentLike := schema.VideoCommentLike{}
+
+	// check if already liked
+	config.DB.Where("user_id = ? AND comment_id = ?", user.Id, comment.Id).First(&commentLike)
+
+	if commentLike.Id == 0 {
+		c.JSON(http.StatusConflict, gin.H{"err": "comment already not liked"})
+		return
+	}
+
+	// delete user's dislike on the comment
+	err = config.DB.Delete(&commentLike).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to remove like"})
+		return
+	}
+
+	c.AbortWithStatus(http.StatusOK)
+}
+
+func DislikeComment(c *gin.Context) {
+	// get user and video
+	user, video, comment, err := beforeVideoCommentAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return
+	}
+
+	commentRating := schema.VideoCommentDisLike{}
+
+	// check if already liked
+	config.DB.Where("user_id = ? AND comment_id = ?", user.Id, comment.Id).First(&commentRating)
+
+	if commentRating.Id != 0 {
+		c.JSON(http.StatusConflict, gin.H{"err": "comment already disliked"})
+		return
+	}
+
+	// delete user's dislike on the comment
+	err = config.DB.Where("user_id = ? AND comment_id = ?", user.Id, comment.Id).Delete(&schema.VideoCommentLike{}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to remove like"})
+		return
+	}
+
+	// create a new like entry
+	commentRating.VideoId = video.Id
+	commentRating.UserId = user.Id
+	commentRating.CommentId = comment.Id
+
+	err = config.DB.Save(&commentRating).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to create like entry"})
+		return
+	}
+
+	c.AbortWithStatus(http.StatusCreated)
+}
+
+func UnDislikeComment(c *gin.Context) {
+	// get user and video
+	user, _, comment, err := beforeVideoCommentAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return
+	}
+
+	commentRating := schema.VideoCommentDisLike{}
+
+	// check if already liked
+	config.DB.Where("user_id = ? AND comment_id = ?", user.Id, comment.Id).First(&commentRating)
+
+	if commentRating.Id == 0 {
+		c.JSON(http.StatusConflict, gin.H{"err": "comment already not disliked"})
+		return
+	}
+
+	// delete user's dislike on the comment
+	err = config.DB.Delete(&commentRating).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to remove dislike"})
+		return
+	}
+
+	c.AbortWithStatus(http.StatusOK)
+}
+
+func ToggleHeartComment(c *gin.Context, value bool) {
+	// get user and video
+	user, video, comment, err := beforeVideoCommentAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
+		return
+	}
+
+	// check if user is the owner of the video
+
+	if user.Id != video.OwnerId {
+		c.JSON(http.StatusForbidden, gin.H{"msg": "you cannot heart this comment"})
+		return
+	}
+
+	// check if already hearted
+	if comment.IsHearted == value {
+		c.JSON(http.StatusConflict, gin.H{"err": "comment already have the wanted heart status"})
+		return
+	}
+
+	comment.IsHearted = value
+
+	err = config.DB.Save(&comment).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to heart/unheart video"})
+		return
+	}
+
+	c.AbortWithStatus(http.StatusOK)
 }
