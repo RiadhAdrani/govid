@@ -1459,3 +1459,53 @@ func ToggleHeartComment(c *gin.Context, value bool) {
 
 	c.AbortWithStatus(http.StatusOK)
 }
+
+// func beforeVideoReplyAction(c *gin.Context) (schema.User, schema.Video, schema.VideoComment, schema.VideoCommentReply, error) {
+
+// }
+
+type CreateReplyBody struct {
+	Text string `json:"text" binding:"required"`
+}
+
+func CreateReply(c *gin.Context) {
+	// get user and video
+	user, video, comment, err := beforeVideoCommentAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
+		return
+	}
+
+	// body
+
+	body := CreateReplyBody{}
+
+	err = c.Bind(&body)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "msg": "invalid body"})
+		return
+	}
+
+	// create reply
+	reply := schema.VideoCommentReply{}
+
+	reply.UserId = user.Id
+	reply.VideoId = video.Id
+	reply.CommentId = comment.Id
+	reply.Text = body.Text
+
+	err = config.DB.Save(&reply).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "msg": "unable to add new reply into the database"})
+		return
+	}
+
+	reply.Video = video
+	reply.User = user
+	reply.Comment = comment
+
+	c.JSON(http.StatusCreated, gin.H{"data": reply})
+}

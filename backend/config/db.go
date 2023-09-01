@@ -80,7 +80,7 @@ func SyncDB() {
 
 	DB.AutoMigrate(&schema.VideoPinnedComment{})
 
-	DB.AutoMigrate(&schema.VideoReply{})
-	DB.AutoMigrate(&schema.VideoReplyLike{})
-	DB.AutoMigrate(&schema.VideoReplyDisLike{})
+	DB.AutoMigrate(&schema.VideoCommentReply{})
+	DB.AutoMigrate(&schema.VideoCommentReplyLike{})
+	DB.AutoMigrate(&schema.VideoCommentReplyDisLike{})
 }
