@@ -1509,3 +1509,66 @@ func CreateReply(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"data": reply})
 }
+
+type UpdateReplyBody struct {
+	Text string `json:"text" binding:"required"`
+}
+
+func UpdateReply(c *gin.Context) {
+	// get user and video
+	user, _, _, err := beforeVideoCommentAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
+		return
+	}
+
+	// reply id
+	// get comment id
+	id, err := utils.GetIdParamFromContext("reply", c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "msg": "invalid id"})
+		return
+	}
+
+	// body
+	body := UpdateReplyBody{}
+
+	err = c.Bind(&body)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "msg": "invalid body"})
+		return
+	}
+
+	// get reply
+	reply := schema.VideoCommentReply{}
+
+	// TODO: get reply with like, dislike, heart ...etc
+	err = config.DB.Preload("User").Find(&reply, id).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "msg": "reply not found"})
+		return
+	}
+
+	// check if user can update reply
+	if reply.UserId != user.Id {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error(), "msg": "cannot edit reply"})
+		return
+	}
+
+	// update
+	reply.Text = body.Text
+
+	// save
+	err = config.DB.Save(&reply).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "msg": "unable to update reply"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": reply, "msg": "updated successfully"})
+}
