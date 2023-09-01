@@ -45,4 +45,13 @@ func VideoRoutes(router *gin.Engine) {
 	router.POST("/videos/:id/comments/:comment/replies", middleware.RequireAuth, controller.CreateReply)
 	router.PUT("/videos/:id/comments/:comment/replies/:reply", middleware.RequireAuth, controller.UpdateReply)
 	router.DELETE("/videos/:id/comments/:comment/replies/:reply", middleware.RequireAuth, controller.DeleteReply)
+
+	router.POST("/videos/:id/comments/:comment/replies/:reply/like", middleware.RequireAuth, controller.LikeReply)
+	router.DELETE("/videos/:id/comments/:comment/replies/:reply/like", middleware.RequireAuth, controller.UnlikeReply)
+
+	router.POST("/videos/:id/comments/:comment/replies/:reply/dislike", middleware.RequireAuth, controller.DislikeReply)
+	router.DELETE("/videos/:id/comments/:comment/replies/:reply/dislike", middleware.RequireAuth, controller.UnDislikeReply)
+
+	router.POST("/videos/:id/comments/:comment/replies/:reply/heart", middleware.RequireAuth, controller.HeartReply)
+	router.DELETE("/videos/:id/comments/:comment/replies/:reply/heart", middleware.RequireAuth, controller.UnHeartReply)
 }

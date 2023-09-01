@@ -1260,7 +1260,6 @@ func beforeVideoCommentAction(c *gin.Context) (schema.User, schema.Video, schema
 	user := middleware.GetUserFromContext(c)
 
 	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
 		return user, video, comment, err
 	}
 
@@ -1268,18 +1267,16 @@ func beforeVideoCommentAction(c *gin.Context) (schema.User, schema.Video, schema
 	id, err := utils.GetIdParamFromContext("comment", c)
 
 	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error()})
 		return user, video, comment, err
 	}
 
 	err = config.DB.Preload("User").First(&comment, id).Error
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"err": err.Error(), "msg": "comment not found"})
 		return user, video, comment, err
 	}
 
-	return user, video, comment, err
+	return user, video, comment, nil
 }
 
 func LikeComment(c *gin.Context) {
@@ -1687,4 +1684,258 @@ func GetReplies(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": replies, "totalCount": totalCount})
+}
+
+func beforeReplyAction(c *gin.Context) (schema.User, schema.Video, schema.VideoComment, schema.VideoCommentReply, error) {
+	reply := schema.VideoCommentReply{}
+
+	user, video, comment, err := beforeVideoCommentAction(c)
+
+	if err != nil {
+		return user, video, comment, reply, err
+	}
+
+	// get reply id
+	id, err := utils.GetIdParamFromContext("reply", c)
+
+	if err != nil {
+		return user, video, comment, reply, err
+	}
+
+	// get reply
+	err = config.DB.First(&reply, id).Error
+
+	if err != nil {
+		return user, video, comment, reply, err
+	}
+
+	return user, video, comment, reply, nil
+}
+
+func LikeReply(c *gin.Context) {
+	user, video, comment, reply, err := beforeReplyAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
+		return
+	}
+
+	// check if already liked
+	existingRating := schema.VideoCommentReplyLike{}
+
+	config.DB.Where("user_id = ? AND reply_id = ?", user.Id, reply.Id).First(&existingRating)
+
+	if existingRating.Id != 0 {
+		c.JSON(http.StatusConflict, gin.H{"msg": "reply already rated"})
+		return
+	}
+
+	// remove dislikes
+	err = config.DB.Where("user_id = ? AND reply_id = ?", user.Id, reply.Id).Delete(&schema.VideoCommentReplyDisLike{}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to remove old rating"})
+		return
+	}
+
+	rating := schema.VideoCommentReplyLike{}
+
+	rating.UserId = user.Id
+	rating.ReplyId = reply.Id
+	rating.VideoId = video.Id
+	rating.CommentId = comment.Id
+
+	// add like
+	err = config.DB.Save(&rating).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to add rating"})
+		return
+	}
+
+	// TODO: get reply with like, dislike, heart ...etc
+
+	// return updated reply
+	c.JSON(http.StatusOK, gin.H{"msg": "reply rated successfully"})
+}
+
+func UnlikeReply(c *gin.Context) {
+	user, _, _, reply, err := beforeReplyAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
+		return
+	}
+
+	// check if already liked
+	existingRating := schema.VideoCommentReplyLike{}
+
+	config.DB.Where("user_id = ? AND reply_id = ?", user.Id, reply.Id).First(&existingRating)
+
+	if existingRating.Id == 0 {
+		c.JSON(http.StatusConflict, gin.H{"msg": "reply already not rated"})
+		return
+	}
+
+	// remove likes
+	err = config.DB.Where("user_id = ? AND reply_id = ?", user.Id, reply.Id).Delete(&schema.VideoCommentReplyLike{}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to remove rating"})
+		return
+	}
+
+	// TODO: get reply with like, dislike, heart ...etc
+
+	// return updated reply
+	c.JSON(http.StatusOK, gin.H{"msg": "reply unrated successfully"})
+}
+
+func DislikeReply(c *gin.Context) {
+	user, video, comment, reply, err := beforeReplyAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
+		return
+	}
+
+	// check if already liked
+	existingDislike := schema.VideoCommentReplyDisLike{}
+
+	config.DB.Where("user_id = ? AND reply_id = ?", user.Id, reply.Id).First(&existingDislike)
+
+	if existingDislike.Id != 0 {
+		c.JSON(http.StatusConflict, gin.H{"msg": "reply already rated"})
+		return
+	}
+
+	// remove likes
+	err = config.DB.Where("user_id = ? AND reply_id = ?", user.Id, reply.Id).Delete(&schema.VideoCommentReplyLike{}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to remove old rating"})
+		return
+	}
+
+	rating := schema.VideoCommentReplyDisLike{}
+
+	rating.UserId = user.Id
+	rating.ReplyId = reply.Id
+	rating.VideoId = video.Id
+	rating.CommentId = comment.Id
+
+	// add like
+	err = config.DB.Save(&rating).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to add rating"})
+		return
+	}
+
+	// TODO: get reply with like, dislike, heart ...etc
+
+	// return updated reply
+	c.JSON(http.StatusOK, gin.H{"msg": "reply rated successfully"})
+}
+
+func UnDislikeReply(c *gin.Context) {
+	user, _, _, reply, err := beforeReplyAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
+		return
+	}
+
+	// check if already liked
+	existingRating := schema.VideoCommentReplyDisLike{}
+
+	config.DB.Where("user_id = ? AND reply_id = ?", user.Id, reply.Id).First(&existingRating)
+
+	if existingRating.Id == 0 {
+		c.JSON(http.StatusConflict, gin.H{"msg": "reply already not rated"})
+		return
+	}
+
+	// remove likes
+	err = config.DB.Where("user_id = ? AND reply_id = ?", user.Id, reply.Id).Delete(&schema.VideoCommentReplyDisLike{}).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to remove rating"})
+		return
+	}
+
+	// TODO: get reply with like, dislike, heart ...etc
+
+	// return updated reply
+	c.JSON(http.StatusOK, gin.H{"msg": "reply unrated successfully"})
+}
+
+func HeartReply(c *gin.Context) {
+	user, video, _, reply, err := beforeReplyAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
+		return
+	}
+
+	// check if user is the owner of the video
+	if user.Id != video.OwnerId {
+		c.JSON(http.StatusForbidden, gin.H{"msg": "cannot perform action"})
+		return
+	}
+
+	// check if already hearted
+	if reply.IsHearted {
+		c.JSON(http.StatusConflict, gin.H{"msg": "reply already rated"})
+		return
+	}
+
+	reply.IsHearted = true
+
+	err = config.DB.Save(&reply).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to update reply rating"})
+		return
+	}
+
+	// TODO: get reply with like, dislike, heart ...etc
+
+	// return updated reply
+	c.JSON(http.StatusOK, gin.H{"msg": "reply rated successfully"})
+}
+
+func UnHeartReply(c *gin.Context) {
+	user, video, _, reply, err := beforeReplyAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
+		return
+	}
+
+	// check if user is the owner of the video
+	if user.Id != video.OwnerId {
+		c.JSON(http.StatusForbidden, gin.H{"msg": "cannot perform action"})
+		return
+	}
+
+	// check if already hearted
+	if !reply.IsHearted {
+		c.JSON(http.StatusConflict, gin.H{"msg": "reply already not rated"})
+		return
+	}
+
+	reply.IsHearted = false
+
+	err = config.DB.Save(&reply).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to update reply rating"})
+		return
+	}
+
+	// TODO: get reply with like, dislike, heart ...etc
+
+	// return updated reply
+	c.JSON(http.StatusOK, gin.H{"msg": "reply unrated successfully"})
 }

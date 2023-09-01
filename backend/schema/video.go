@@ -111,10 +111,17 @@ type VideoCommentReply struct {
 	VideoCommentAction
 }
 
-type VideoCommentReplyLike struct {
+type VideoCommentReplyAction struct {
+	Reply   VideoCommentReply `json:"reply" gorm:"foreignKey:ReplyId"`
+	ReplyId int               `json:"replyId" gorm:"not null"`
+
 	VideoCommentAction
 }
 
+type VideoCommentReplyLike struct {
+	VideoCommentReplyAction
+}
+
 type VideoCommentReplyDisLike struct {
-	VideoCommentAction
+	VideoCommentReplyAction
 }
