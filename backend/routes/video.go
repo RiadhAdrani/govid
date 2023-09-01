@@ -42,4 +42,5 @@ func VideoRoutes(router *gin.Engine) {
 	router.DELETE("/videos/:id/comments/:comment/heart", middleware.RequireAuth, func(c *gin.Context) { controller.ToggleHeartComment(c, false) })
 
 	router.POST("/videos/:id/comments/:comment/replies", middleware.RequireAuth, controller.CreateReply)
+	router.PUT("/videos/:id/comments/:comment/replies/:reply", middleware.RequireAuth, controller.UpdateReply)
 }
