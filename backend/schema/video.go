@@ -76,13 +76,9 @@ type VideoDisLike struct {
 type VideoComment struct {
 	Text string `json:"text" gorm:"not null"`
 
-	ReplyCount   int64 `json:"replyCount"  gorm:"default:0"`
-	LikeCount    int64 `json:"likeCount"  gorm:"default:0"`
-	DislikeCount int64 `json:"dislikeCount" gorm:"default:0"`
-	IsLiked      bool  `json:"isLiked" gorm:"default:null"`
-	IsDisliked   bool  `json:"isDisliked" gorm:"default:null"`
-	IsHearted    bool  `json:"isHearted" gorm:"default:null"`
+	ReplyCount int64 `json:"replyCount"  gorm:"default:0"`
 
+	Rateable
 	VideoAction
 }
 
@@ -108,16 +104,17 @@ type VideoCommentDisLike struct {
 	VideoCommentAction
 }
 
-type VideoReply struct {
+type VideoCommentReply struct {
 	Text string `json:"text" gorm:"not null"`
 
+	Rateable
 	VideoCommentAction
 }
 
-type VideoReplyLike struct {
+type VideoCommentReplyLike struct {
 	VideoCommentAction
 }
 
-type VideoReplyDisLike struct {
+type VideoCommentReplyDisLike struct {
 	VideoCommentAction
 }
