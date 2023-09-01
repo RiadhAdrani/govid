@@ -930,13 +930,13 @@ func GetComment(id int, c *gin.Context) (schema.VideoComment, error) {
 	video_comments.*,
 	COUNT(video_comment_likes.id) AS like_count,
 	COUNT(video_comment_dis_likes.id) AS dislike_count,
-	COUNT(video_replies.id) AS reply_count,
+	COUNT(video_comment_replies.id) AS reply_count,
 	CASE WHEN SUM(CASE WHEN video_comment_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_liked,
 	CASE WHEN SUM(CASE WHEN video_comment_dis_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_disliked
 	`, user.Id, user.Id).
 		Joins("LEFT JOIN video_comment_likes ON video_comments.id = video_comment_likes.comment_id AND video_comment_likes.deleted_at IS NULL").
 		Joins("LEFT JOIN video_comment_dis_likes ON video_comments.id = video_comment_dis_likes.comment_id AND video_comment_dis_likes.deleted_at IS NULL").
-		Joins("LEFT JOIN video_replies ON video_comments.id = video_replies.comment_id").
+		Joins("LEFT JOIN video_comment_replies ON video_comments.id = video_comment_replies.comment_id").
 		Where("video_comments.video_id = ?", video.Id).
 		Group("video_comments.id").
 		First(&comment).Error
@@ -994,13 +994,13 @@ func GetComments(c *gin.Context) {
 		video_comments.*,
 		COUNT(video_comment_likes.id) AS like_count,
 		COUNT(video_comment_dis_likes.id) AS dislike_count,
-		COUNT(video_replies.id) AS reply_count,
+		COUNT(video_comment_replies.id) AS reply_count,
 		CASE WHEN SUM(CASE WHEN video_comment_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_liked,
 		CASE WHEN SUM(CASE WHEN video_comment_dis_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_disliked
 		`, user.Id, user.Id).
 		Joins("LEFT JOIN video_comment_likes ON video_comments.id = video_comment_likes.comment_id AND video_comment_likes.deleted_at IS NULL").
 		Joins("LEFT JOIN video_comment_dis_likes ON video_comments.id = video_comment_dis_likes.comment_id AND video_comment_dis_likes.deleted_at IS NULL").
-		Joins("LEFT JOIN video_replies ON video_comments.id = video_replies.comment_id").
+		Joins("LEFT JOIN video_comment_replies ON video_comments.id = video_comment_replies.comment_id").
 		Where("video_comments.video_id = ?", video.Id).
 		Group("video_comments.id").
 		Find(&comments).Error
@@ -1571,4 +1571,120 @@ func UpdateReply(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": reply, "msg": "updated successfully"})
+}
+
+func DeleteReply(c *gin.Context) {
+	// get user and video
+	user, _, _, err := beforeVideoCommentAction(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
+		return
+	}
+
+	// reply id
+	// get comment id
+	id, err := utils.GetIdParamFromContext("reply", c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "msg": "invalid id"})
+		return
+	}
+
+	// get reply
+	reply := schema.VideoCommentReply{}
+
+	err = config.DB.Find(&reply, id).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "msg": "reply not found"})
+		return
+	}
+
+	// check if user can update reply
+	if reply.UserId != user.Id {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error(), "msg": "cannot delete reply"})
+		return
+	}
+
+	// save
+	err = config.DB.Delete(&reply, reply.Id).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "msg": "unable to delete reply"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"msg": "reply deleted successfully"})
+}
+
+func GetReplies(c *gin.Context) {
+	_, _, err := beforeVideoAction(c, false)
+
+	// TODO: needed for likeCount, dislikeCount ...etc
+	// _ := middleware.GetUserFromContext(c)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "msg": "couldn't fetch replies"})
+		return
+	}
+
+	// get comment
+	comment := schema.VideoComment{}
+
+	commentId, err := utils.GetIdParamFromContext("comment", c)
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "msg": "comment not found"})
+		return
+	}
+
+	err = config.DB.First(&comment, commentId).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "msg": "comment not found"})
+		return
+	}
+
+	// get query params
+	rFrom := c.DefaultQuery("from", "0")
+	rCount := c.Query("count")
+
+	from, err := strconv.Atoi(rFrom)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "msg": "invalid page start"})
+		return
+	}
+
+	count, err := strconv.Atoi(rCount)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "msg": "invalid page end"})
+		return
+	}
+
+	var totalCount int64
+
+	err = config.DB.Model(&schema.VideoCommentReply{}).Where("comment_id = ?", comment.Id).Count(&totalCount).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err, "msg": "unable to retrieve replies count"})
+		return
+	}
+
+	var replies = []schema.VideoCommentReply{}
+
+	err = config.DB.Model(&schema.VideoCommentReply{}).
+		Preload("User").
+		Limit(count).
+		Offset(from).
+		Where("video_comment_replies.comment_id = ?", comment.Id).
+		Find(&replies).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err, "msg": "unable to retreive comment replies"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": replies, "totalCount": totalCount})
 }
