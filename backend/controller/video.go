@@ -1457,10 +1457,6 @@ func ToggleHeartComment(c *gin.Context, value bool) {
 	c.AbortWithStatus(http.StatusOK)
 }
 
-// func beforeVideoReplyAction(c *gin.Context) (schema.User, schema.Video, schema.VideoComment, schema.VideoCommentReply, error) {
-
-// }
-
 type CreateReplyBody struct {
 	Text string `json:"text" binding:"required"`
 }
@@ -1507,25 +1503,43 @@ func CreateReply(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"data": reply})
 }
 
+func GetReplyWithMetadata(id int, c *gin.Context) (schema.VideoCommentReply, error) {
+	user := middleware.GetUserFromContext(c)
+
+	reply := schema.VideoCommentReply{}
+
+	err := config.DB.Model(&schema.VideoCommentReply{}).
+		Preload("User").
+		Select(`
+			video_comment_replies.*,
+			COUNT(video_comment_reply_likes.id) AS like_count,
+			COUNT(video_comment_reply_dis_likes.id) AS dislike_count,
+			CASE WHEN SUM(CASE WHEN video_comment_reply_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_liked,
+			CASE WHEN SUM(CASE WHEN video_comment_reply_dis_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_disliked
+			`, user.Id, user.Id).
+		Joins("LEFT JOIN video_comment_reply_likes ON video_comment_replies.id = video_comment_reply_likes.reply_id AND video_comment_reply_likes.deleted_at IS NULL").
+		Joins("LEFT JOIN video_comment_reply_dis_likes ON video_comment_replies.id = video_comment_reply_dis_likes.reply_id AND video_comment_reply_dis_likes.deleted_at IS NULL").
+		Where("video_comment_replies.id = ?", id).
+		Group("video_comment_replies.id").
+		First(&reply).Error
+
+	if err != nil {
+		return reply, err
+	}
+
+	return reply, nil
+}
+
 type UpdateReplyBody struct {
 	Text string `json:"text" binding:"required"`
 }
 
 func UpdateReply(c *gin.Context) {
 	// get user and video
-	user, _, _, err := beforeVideoCommentAction(c)
+	user, _, _, reply, err := beforeReplyAction(c)
 
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
-		return
-	}
-
-	// reply id
-	// get comment id
-	id, err := utils.GetIdParamFromContext("reply", c)
-
-	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "msg": "invalid id"})
 		return
 	}
 
@@ -1536,17 +1550,6 @@ func UpdateReply(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "msg": "invalid body"})
-		return
-	}
-
-	// get reply
-	reply := schema.VideoCommentReply{}
-
-	// TODO: get reply with like, dislike, heart ...etc
-	err = config.DB.Preload("User").Find(&reply, id).Error
-
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "msg": "reply not found"})
 		return
 	}
 
@@ -1572,29 +1575,10 @@ func UpdateReply(c *gin.Context) {
 
 func DeleteReply(c *gin.Context) {
 	// get user and video
-	user, _, _, err := beforeVideoCommentAction(c)
+	user, _, _, reply, err := beforeReplyAction(c)
 
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "something went wrong"})
-		return
-	}
-
-	// reply id
-	// get comment id
-	id, err := utils.GetIdParamFromContext("reply", c)
-
-	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "msg": "invalid id"})
-		return
-	}
-
-	// get reply
-	reply := schema.VideoCommentReply{}
-
-	err = config.DB.Find(&reply, id).Error
-
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error(), "msg": "reply not found"})
 		return
 	}
 
@@ -1618,8 +1602,7 @@ func DeleteReply(c *gin.Context) {
 func GetReplies(c *gin.Context) {
 	_, _, err := beforeVideoAction(c, false)
 
-	// TODO: needed for likeCount, dislikeCount ...etc
-	// _ := middleware.GetUserFromContext(c)
+	user := middleware.GetUserFromContext(c)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "msg": "couldn't fetch replies"})
@@ -1675,7 +1658,17 @@ func GetReplies(c *gin.Context) {
 		Preload("User").
 		Limit(count).
 		Offset(from).
+		Select(`
+			video_comment_replies.*,
+			COUNT(video_comment_reply_likes.id) AS like_count,
+			COUNT(video_comment_reply_dis_likes.id) AS dislike_count,
+			CASE WHEN SUM(CASE WHEN video_comment_reply_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_liked,
+			CASE WHEN SUM(CASE WHEN video_comment_reply_dis_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_disliked
+			`, user.Id, user.Id).
+		Joins("LEFT JOIN video_comment_reply_likes ON video_comment_replies.id = video_comment_reply_likes.reply_id AND video_comment_reply_likes.deleted_at IS NULL").
+		Joins("LEFT JOIN video_comment_reply_dis_likes ON video_comment_replies.id = video_comment_reply_dis_likes.reply_id AND video_comment_reply_dis_likes.deleted_at IS NULL").
 		Where("video_comment_replies.comment_id = ?", comment.Id).
+		Group("video_comment_replies.id").
 		Find(&replies).Error
 
 	if err != nil {
@@ -1702,8 +1695,7 @@ func beforeReplyAction(c *gin.Context) (schema.User, schema.Video, schema.VideoC
 		return user, video, comment, reply, err
 	}
 
-	// get reply
-	err = config.DB.First(&reply, id).Error
+	reply, err = GetReplyWithMetadata(id, c)
 
 	if err != nil {
 		return user, video, comment, reply, err
@@ -1753,10 +1745,16 @@ func LikeReply(c *gin.Context) {
 		return
 	}
 
-	// TODO: get reply with like, dislike, heart ...etc
+	reply.IsLiked = true
+	reply.LikeCount++
+
+	if reply.IsDisliked {
+		reply.IsDisliked = false
+		reply.DislikeCount--
+	}
 
 	// return updated reply
-	c.JSON(http.StatusOK, gin.H{"msg": "reply rated successfully"})
+	c.JSON(http.StatusOK, gin.H{"data": reply, "msg": "reply rated successfully"})
 }
 
 func UnlikeReply(c *gin.Context) {
@@ -1785,10 +1783,11 @@ func UnlikeReply(c *gin.Context) {
 		return
 	}
 
-	// TODO: get reply with like, dislike, heart ...etc
+	reply.IsLiked = false
+	reply.LikeCount--
 
 	// return updated reply
-	c.JSON(http.StatusOK, gin.H{"msg": "reply unrated successfully"})
+	c.JSON(http.StatusOK, gin.H{"data": reply, "msg": "reply unrated successfully"})
 }
 
 func DislikeReply(c *gin.Context) {
@@ -1832,10 +1831,16 @@ func DislikeReply(c *gin.Context) {
 		return
 	}
 
-	// TODO: get reply with like, dislike, heart ...etc
+	reply.IsDisliked = true
+	reply.DislikeCount++
+
+	if reply.IsLiked {
+		reply.IsLiked = false
+		reply.LikeCount--
+	}
 
 	// return updated reply
-	c.JSON(http.StatusOK, gin.H{"msg": "reply rated successfully"})
+	c.JSON(http.StatusOK, gin.H{"data": reply, "msg": "reply rated successfully"})
 }
 
 func UnDislikeReply(c *gin.Context) {
@@ -1864,10 +1869,11 @@ func UnDislikeReply(c *gin.Context) {
 		return
 	}
 
-	// TODO: get reply with like, dislike, heart ...etc
+	reply.IsDisliked = false
+	reply.DislikeCount--
 
 	// return updated reply
-	c.JSON(http.StatusOK, gin.H{"msg": "reply unrated successfully"})
+	c.JSON(http.StatusOK, gin.H{"data": reply, "msg": "reply unrated successfully"})
 }
 
 func HeartReply(c *gin.Context) {
@@ -1899,10 +1905,8 @@ func HeartReply(c *gin.Context) {
 		return
 	}
 
-	// TODO: get reply with like, dislike, heart ...etc
-
 	// return updated reply
-	c.JSON(http.StatusOK, gin.H{"msg": "reply rated successfully"})
+	c.JSON(http.StatusOK, gin.H{"data": reply, "msg": "reply rated successfully"})
 }
 
 func UnHeartReply(c *gin.Context) {
@@ -1934,8 +1938,6 @@ func UnHeartReply(c *gin.Context) {
 		return
 	}
 
-	// TODO: get reply with like, dislike, heart ...etc
-
 	// return updated reply
-	c.JSON(http.StatusOK, gin.H{"msg": "reply unrated successfully"})
+	c.JSON(http.StatusOK, gin.H{"data": reply, "msg": "reply unrated successfully"})
 }
