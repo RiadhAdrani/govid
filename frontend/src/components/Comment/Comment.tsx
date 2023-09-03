@@ -42,34 +42,43 @@ export default (props: CommentProps) => {
 
   const edit = useReactive({ text: comment.text, is: false, loading: false });
 
-  const ratingActions = [
-    {
-      icon: comment.isLiked ? 'i-mdi-thumb-up text-green-600' : 'i-mdi-light-thumb-up',
-      onClick: () => (comment.isLiked ? unlikeComment(comment.id) : likeComment(comment.id)),
-      tooltip: 'Like',
-      count: comment.likeCount > 0 ? comment.likeCount : undefined,
-    },
-    {
-      icon: comment.isDisliked ? 'i-mdi-thumb-down text-green-600' : 'i-mdi-light-thumb-down',
-      onClick: () =>
-        comment.isDisliked ? unDislikeComment(comment.id) : dislikeComment(comment.id),
-      tooltip: 'Like',
-      count: comment.dislikeCount > 0 ? comment.dislikeCount : undefined,
-    },
-    {
-      icon: comment.isHearted ? 'i-mdi-heart text-red-600' : 'i-mdi-light-heart',
-      onClick: () => (comment.isHearted ? unHeartComment(comment.id) : heartComment(comment.id)),
-      tooltip: comment.isHearted
-        ? `Hearted by ${data?.owner.firstName} ${data?.owner.lastName}`
-        : '',
-    },
-    {
-      icon: 'i-mdi-reply',
-      onClick: () => setShowReplies(!showReplies),
-      tooltip: 'Reply',
-      count: comment.replyCount > 0 ? comment.replyCount : undefined,
-    },
-  ];
+  const ratingActions = useMemo(() => {
+    const items = [
+      {
+        icon: comment.isLiked ? 'i-mdi-thumb-up text-green-600' : 'i-mdi-light-thumb-up',
+        onClick: () => (comment.isLiked ? unlikeComment(comment.id) : likeComment(comment.id)),
+        tooltip: 'Like',
+        count: comment.likeCount > 0 ? comment.likeCount : undefined,
+      },
+      {
+        icon: comment.isDisliked ? 'i-mdi-thumb-down text-green-600' : 'i-mdi-light-thumb-down',
+        onClick: () =>
+          comment.isDisliked ? unDislikeComment(comment.id) : dislikeComment(comment.id),
+        tooltip: 'Like',
+        count: comment.dislikeCount > 0 ? comment.dislikeCount : undefined,
+      },
+
+      {
+        icon: 'i-mdi-reply',
+        onClick: () => setShowReplies(!showReplies),
+        tooltip: 'Reply',
+        count: comment.replyCount > 0 ? comment.replyCount : undefined,
+      },
+    ];
+
+    if (comment.isHearted || user?.id === comment.userId) {
+      items.push({
+        icon: comment.isHearted ? 'i-mdi-heart text-red-600' : 'i-mdi-light-heart',
+        onClick: () => (comment.isHearted ? unHeartComment(comment.id) : heartComment(comment.id)),
+        tooltip: comment.isHearted
+          ? `Hearted by ${data?.owner.firstName} ${data?.owner.lastName}`
+          : '',
+        count: undefined,
+      });
+    }
+
+    return items;
+  }, [props.comment, isAuthenticated, user, data]);
 
   const editActions = useMemo(() => {
     if (!isAuthenticated || user?.id !== comment.userId) {
@@ -160,6 +169,7 @@ export default (props: CommentProps) => {
               disabled={edit.loading}
               value={edit.text}
               rows={2}
+              placeholder="Edit comment..."
               autofocus
               onInput={(e) => (edit.text = e.currentTarget.value)}
               class={[
