@@ -12,6 +12,7 @@ import { UserContext } from '../../context/User.context';
 import { PlayerContext } from '../../context/Player.context';
 import GButton from '../Button/G.Button';
 import CommentActionButton from './Comment.Action.Button';
+import CommentReplies from './Comment.Replies';
 
 export interface CommentProps extends PropsWithUtility {
   comment: VideoComment;
@@ -35,6 +36,7 @@ export default (props: CommentProps) => {
   } = useContext(PlayerContext);
 
   const [showActions, setShowActions] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
 
   const comment = props.comment;
 
@@ -63,7 +65,7 @@ export default (props: CommentProps) => {
     },
     {
       icon: 'i-mdi-reply',
-      onClick: () => {},
+      onClick: () => setShowReplies(!showReplies),
       tooltip: 'Reply',
       count: comment.replyCount > 0 ? comment.replyCount : undefined,
     },
@@ -152,67 +154,75 @@ export default (props: CommentProps) => {
             {new Date(comment.createdAt).toDateString()}
           </span>
         </div>
-        <div if={edit.is} class="col gap-2 w-full">
-          <textarea
-            disabled={edit.loading}
-            value={edit.text}
-            rows={5}
-            onInput={(e) => (edit.text = e.currentTarget.value)}
-            class={[
-              'p-2 text-1em font-inherit bg-transparent border-none',
-              'bg-zinc-900 rounded',
-              'border-b-transparent border-b-solid border-b-1px focus:border-b-white',
-              'focus:outline-none',
-              'resize-y',
-            ]}
-          />
-          <div class="row justify-end gap-2">
-            <GButton disabled={edit.loading} class="bg-zinc-900" onClick={() => (edit.is = false)}>
-              Cancel
-            </GButton>
-            <GButton disabled={edit.loading} class="bg-green-700" onClick={confirmEdit}>
-              Confirm
-            </GButton>
+        <div class="col w-full">
+          <div if={edit.is} class="col gap-2 w-full">
+            <textarea
+              disabled={edit.loading}
+              value={edit.text}
+              rows={2}
+              autofocus
+              onInput={(e) => (edit.text = e.currentTarget.value)}
+              class={[
+                'p-2 text-1em font-inherit bg-transparent border-none',
+                'bg-zinc-900 rounded',
+                'border-b-transparent border-b-solid border-b-1px focus:border-b-white',
+                'focus:outline-none',
+                'resize-y',
+              ]}
+            />
+            <div class="row justify-end gap-2">
+              <GButton
+                disabled={edit.loading}
+                class="bg-zinc-900"
+                onClick={() => (edit.is = false)}
+              >
+                Cancel
+              </GButton>
+              <GButton disabled={edit.loading} class="bg-green-700" onClick={confirmEdit}>
+                Confirm
+              </GButton>
+            </div>
           </div>
+          <Fragment else>
+            <div>{comment.text}</div>
+            <div class="row items-center gap-5 m-y-1.5">
+              <div class="row items-center gap-1">
+                {ratingActions.map((it) => (
+                  <CommentActionButton
+                    key={it.icon}
+                    icon={it.icon}
+                    onClick={it.onClick}
+                    tooltip={it.tooltip}
+                    count={it.count}
+                  />
+                ))}
+              </div>
+              <div class="row items-center gap-1">
+                {editActions.map((it) => (
+                  <CommentActionButton
+                    key={it.icon}
+                    icon={it.icon}
+                    tooltip={it.tooltip}
+                    onClick={it.onClick}
+                    classes={[showActions ? 'opacity-100' : 'opacity-0']}
+                  />
+                ))}
+              </div>
+              <div class="row items-center gap-1">
+                {ownerActions.map((it) => (
+                  <CommentActionButton
+                    key={it.icon}
+                    icon={it.icon}
+                    tooltip={it.tooltip}
+                    onClick={it.onClick}
+                    classes={[showActions ? 'opacity-100' : 'opacity-0']}
+                  />
+                ))}
+              </div>
+            </div>
+          </Fragment>
+          <CommentReplies if={showReplies} comment={comment} />
         </div>
-        <Fragment else>
-          <div>{comment.text}</div>
-          <div class="row items-center gap-5 m-y-1.5">
-            <div class="row items-center gap-1">
-              {ratingActions.map((it) => (
-                <CommentActionButton
-                  key={it.icon}
-                  icon={it.icon}
-                  onClick={it.onClick}
-                  tooltip={it.tooltip}
-                  count={it.count}
-                />
-              ))}
-            </div>
-            <div class="row items-center gap-1">
-              {editActions.map((it) => (
-                <CommentActionButton
-                  key={it.icon}
-                  icon={it.icon}
-                  tooltip={it.tooltip}
-                  onClick={it.onClick}
-                  classes={[showActions ? 'opacity-100' : 'opacity-0']}
-                />
-              ))}
-            </div>
-            <div class="row items-center gap-1">
-              {ownerActions.map((it) => (
-                <CommentActionButton
-                  key={it.icon}
-                  icon={it.icon}
-                  tooltip={it.tooltip}
-                  onClick={it.onClick}
-                  classes={[showActions ? 'opacity-100' : 'opacity-0']}
-                />
-              ))}
-            </div>
-          </div>
-        </Fragment>
       </div>
     </div>
   );

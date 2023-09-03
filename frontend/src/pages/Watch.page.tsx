@@ -200,7 +200,7 @@ export default () => {
           </div>
         </div>
       </div>
-      <div class="w-400px col h-full gap-2">
+      <div class="w-400px hidden lg:flex col h-full gap-2">
         <div class="bg-zinc-900 flex-1 rounded"></div>
       </div>
     </div>

@@ -927,18 +927,72 @@ func GetComment(id int, c *gin.Context) (schema.VideoComment, error) {
 	err = config.DB.Model(&schema.VideoComment{}).
 		Preload("User").
 		Select(`
-	video_comments.*,
-	COUNT(video_comment_likes.id) AS like_count,
-	COUNT(video_comment_dis_likes.id) AS dislike_count,
-	COUNT(video_comment_replies.id) AS reply_count,
-	CASE WHEN SUM(CASE WHEN video_comment_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_liked,
-	CASE WHEN SUM(CASE WHEN video_comment_dis_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_disliked
-	`, user.Id, user.Id).
-		Joins("LEFT JOIN video_comment_likes ON video_comments.id = video_comment_likes.comment_id AND video_comment_likes.deleted_at IS NULL").
-		Joins("LEFT JOIN video_comment_dis_likes ON video_comments.id = video_comment_dis_likes.comment_id AND video_comment_dis_likes.deleted_at IS NULL").
-		Joins("LEFT JOIN video_comment_replies ON video_comments.id = video_comment_replies.comment_id").
+			video_comments.id,
+			video_comments.text,
+			video_comments.created_at,
+			video_comments.updated_at,
+			video_comments.deleted_at,
+			video_comments.user_id,
+			video_comments.is_hearted,
+			like_counts.like_count,
+			dislike_counts.dislike_count,
+			reply_counts.reply_count,
+			COALESCE(like_counts.like_count, 0) AS like_count,
+			COALESCE(dislike_counts.dislike_count, 0) AS dislike_count,
+			COALESCE(reply_counts.reply_count, 0) AS reply_count,
+			COALESCE(liked_by_user.liked, false) AS is_liked,
+						COALESCE(disliked_by_user.disliked, false) AS is_disliked
+			`).
+		Joins(`
+				LEFT JOIN (
+						SELECT comment_id, COUNT(*) AS like_count FROM video_comment_likes
+						WHERE deleted_at IS NULL
+						GROUP BY comment_id
+				) AS like_counts ON video_comments.id = like_counts.comment_id
+			`).
+		Joins(`
+				LEFT JOIN (
+						SELECT comment_id, COUNT(*) AS dislike_count FROM video_comment_dis_likes
+						WHERE deleted_at IS NULL
+						GROUP BY comment_id
+				) AS dislike_counts ON video_comments.id = dislike_counts.comment_id
+			`).
+		Joins(`
+				LEFT JOIN (
+						SELECT comment_id, COUNT(*) AS reply_count FROM video_comment_replies
+						WHERE deleted_at IS NULL
+						GROUP BY comment_id
+				) AS reply_counts ON video_comments.id = reply_counts.comment_id
+			`).
+		Joins(`
+				LEFT JOIN (
+						SELECT comment_id, true AS liked FROM video_comment_likes
+						WHERE user_id = ? AND deleted_at IS NULL
+						GROUP BY comment_id
+				) AS liked_by_user ON video_comments.id = liked_by_user.comment_id
+			`, user.Id).
+		Joins(`
+				LEFT JOIN (
+						SELECT comment_id, true AS disliked FROM video_comment_dis_likes
+						WHERE user_id = ? AND deleted_at IS NULL
+						GROUP BY comment_id
+				) AS disliked_by_user ON video_comments.id = disliked_by_user.comment_id
+			`, user.Id).
 		Where("video_comments.video_id = ?", video.Id).
-		Group("video_comments.id").
+		Group(`
+				video_comments.id,
+				video_comments.text,
+				video_comments.created_at,
+				video_comments.updated_at,
+				video_comments.deleted_at,
+				video_comments.user_id,
+				video_comments.is_hearted,
+				like_counts.like_count,
+				dislike_counts.dislike_count,
+				reply_counts.reply_count,
+				liked_by_user.liked,
+				disliked_by_user.disliked
+			`).
 		First(&comment).Error
 
 	if err != nil {
@@ -991,18 +1045,72 @@ func GetComments(c *gin.Context) {
 		Limit(count).
 		Offset(from).
 		Select(`
-		video_comments.*,
-		COUNT(video_comment_likes.id) AS like_count,
-		COUNT(video_comment_dis_likes.id) AS dislike_count,
-		COUNT(video_comment_replies.id) AS reply_count,
-		CASE WHEN SUM(CASE WHEN video_comment_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_liked,
-		CASE WHEN SUM(CASE WHEN video_comment_dis_likes.user_id = ? THEN 1 ELSE 0 END) > 0 THEN true ELSE false END AS is_disliked
-		`, user.Id, user.Id).
-		Joins("LEFT JOIN video_comment_likes ON video_comments.id = video_comment_likes.comment_id AND video_comment_likes.deleted_at IS NULL").
-		Joins("LEFT JOIN video_comment_dis_likes ON video_comments.id = video_comment_dis_likes.comment_id AND video_comment_dis_likes.deleted_at IS NULL").
-		Joins("LEFT JOIN video_comment_replies ON video_comments.id = video_comment_replies.comment_id").
+		video_comments.id,
+		video_comments.text,
+		video_comments.created_at,
+		video_comments.updated_at,
+		video_comments.deleted_at,
+		video_comments.user_id,
+		video_comments.is_hearted,
+		like_counts.like_count,
+		dislike_counts.dislike_count,
+		reply_counts.reply_count,
+		COALESCE(like_counts.like_count, 0) AS like_count,
+		COALESCE(dislike_counts.dislike_count, 0) AS dislike_count,
+		COALESCE(reply_counts.reply_count, 0) AS reply_count,
+		COALESCE(liked_by_user.liked, false) AS is_liked,
+		COALESCE(disliked_by_user.disliked, false) AS is_disliked
+	`).
+		Joins(`
+		LEFT JOIN (
+				SELECT comment_id, COUNT(*) AS like_count FROM video_comment_likes
+				WHERE deleted_at IS NULL
+				GROUP BY comment_id
+		) AS like_counts ON video_comments.id = like_counts.comment_id
+	`).
+		Joins(`
+		LEFT JOIN (
+				SELECT comment_id, COUNT(*) AS dislike_count FROM video_comment_dis_likes
+				WHERE deleted_at IS NULL
+				GROUP BY comment_id
+		) AS dislike_counts ON video_comments.id = dislike_counts.comment_id
+	`).
+		Joins(`
+		LEFT JOIN (
+				SELECT comment_id, COUNT(*) AS reply_count FROM video_comment_replies
+				WHERE deleted_at IS NULL
+				GROUP BY comment_id
+		) AS reply_counts ON video_comments.id = reply_counts.comment_id
+	`).
+		Joins(`
+		LEFT JOIN (
+				SELECT comment_id, true AS liked FROM video_comment_likes
+				WHERE user_id = ? AND deleted_at IS NULL
+				GROUP BY comment_id
+		) AS liked_by_user ON video_comments.id = liked_by_user.comment_id
+	`, user.Id).
+		Joins(`
+		LEFT JOIN (
+				SELECT comment_id, true AS disliked FROM video_comment_dis_likes
+				WHERE user_id = ? AND deleted_at IS NULL
+				GROUP BY comment_id
+		) AS disliked_by_user ON video_comments.id = disliked_by_user.comment_id
+	`, user.Id).
 		Where("video_comments.video_id = ?", video.Id).
-		Group("video_comments.id").
+		Group(`
+		video_comments.id,
+		video_comments.text,
+		video_comments.created_at,
+		video_comments.updated_at,
+		video_comments.deleted_at,
+		video_comments.user_id,
+		video_comments.is_hearted,
+		like_counts.like_count,
+		dislike_counts.dislike_count,
+		reply_counts.reply_count,
+		liked_by_user.liked,
+		disliked_by_user.disliked
+	`).
 		Find(&comments).Error
 
 	if err != nil {
@@ -1011,8 +1119,6 @@ func GetComments(c *gin.Context) {
 	}
 
 	body := make(utils.Map)
-
-	body["data"] = comments
 
 	maybePinned := schema.VideoPinnedComment{}
 
@@ -1024,9 +1130,27 @@ func GetComments(c *gin.Context) {
 		pinned, err = GetComment(maybePinned.Id, c)
 
 		if err == nil && pinned.Id != 0 {
-			body["pinned"] = pinned
+			body["pinned"] = pinned.Id
+
+			// check if the list contains the comment:
+			containsPinned := false
+
+			for _, it := range comments {
+				if it.Id == pinned.Id {
+					containsPinned = true
+					break
+				}
+			}
+
+			if !containsPinned {
+				comments = append(comments, pinned)
+			}
+
 		}
 	}
+
+	body["data"] = comments
+	body["totalCount"] = commentsCount
 
 	c.JSON(http.StatusOK, body)
 }
