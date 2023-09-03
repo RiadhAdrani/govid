@@ -179,7 +179,12 @@ export const PlayerProvider = (props: PropsWithUtility) => {
   const [isViewCounted, setViewCounted] = useState(false);
 
   const [comments, setComments] = useState<Array<VideoComment>>([]);
-  const [pinnedComment, setPinned] = useState<VideoComment | undefined>(undefined);
+  const [pinnedId, setPinnedId] = useState<number | undefined>(undefined);
+
+  const pinnedComment = useMemo(
+    () => comments.find((it) => it.id === pinnedId),
+    [pinnedId, comments]
+  );
 
   const windowSize = useWindowSize();
 
@@ -375,7 +380,7 @@ export const PlayerProvider = (props: PropsWithUtility) => {
       const pinned = res.data.data;
 
       if (pinned) {
-        setPinned(pinned);
+        setPinnedId(commentId);
       }
     } catch (error) {}
   };
@@ -386,7 +391,7 @@ export const PlayerProvider = (props: PropsWithUtility) => {
     try {
       await useApi.delete(`/videos/${id}/comments/${commentId}/pin`);
 
-      setPinned(undefined);
+      setPinnedId(undefined);
     } catch (error) {}
   };
 
@@ -415,10 +420,6 @@ export const PlayerProvider = (props: PropsWithUtility) => {
 
       if (updated) {
         const n = comments.map((it) => (it.id === commentId ? { ...it, text: updated.text } : it));
-
-        if (pinnedComment && pinnedComment.id === commentId) {
-          setPinned({ ...pinnedComment, text: updated.text });
-        }
 
         setComments(n);
       }
@@ -571,10 +572,10 @@ export const PlayerProvider = (props: PropsWithUtility) => {
     setCurrentTime(0);
   };
 
-  const toggleMiniPlayer: IPlayerContext['toggleMiniPlayer'] = (v) => {
+  const toggleMiniPlayer: IPlayerContext['toggleMiniPlayer'] = () => {
     if (!videoElement) return;
 
-    controls.mini = typeof v === 'boolean' ? v : !controls.mini;
+    // controls.mini = typeof v === 'boolean' ? v : !controls.mini;
   };
 
   const toggleVideoRating = (isLike: boolean, rate: boolean) => {
@@ -743,7 +744,7 @@ export const PlayerProvider = (props: PropsWithUtility) => {
       }
 
       if (it.data.pinned) {
-        setPinned(it.data.pinned);
+        setPinnedId(it.data.pinned);
       }
     });
   }, id);

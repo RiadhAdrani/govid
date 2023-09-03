@@ -1,5 +1,5 @@
 import { ApiResponse } from './api';
-import { Action, Base } from './common';
+import { Action, Base, Rateable } from './common';
 import { PublicUser } from './user';
 
 export enum UploadState {
@@ -81,6 +81,14 @@ export interface VideoComment extends VideoAction {
   replyCount: number;
 }
 
+export interface Reply extends Rateable, Base {
+  text: string;
+  videoId: number;
+  commentId: number;
+  userId: number;
+  user: PublicUser;
+}
+
 export type CreateVideoCommentBody = Pick<VideoComment, 'text'>;
 export type CreateVideoCommentResponse = ApiResponse<VideoComment>;
 
@@ -89,5 +97,5 @@ export type UpdateVideoCommentResponse = ApiResponse<VideoComment>;
 
 export type GetVideoCommentResponse = ApiResponse<
   Array<VideoComment>,
-  { totalCount: number; pinned?: VideoComment }
+  { totalCount: number; pinned?: number }
 >;

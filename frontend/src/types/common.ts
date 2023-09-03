@@ -8,3 +8,11 @@ export interface Base {
 export interface Action extends Base {
   userId: number;
 }
+
+export interface Rateable {
+  isLiked: boolean;
+  isDisliked: boolean;
+  isHearted: boolean;
+  likeCount: number;
+  dislikeCount: number;
+}
