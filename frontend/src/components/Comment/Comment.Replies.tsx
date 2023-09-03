@@ -1,4 +1,10 @@
-import { PropsWithUtility, useEffect, useReactive, useState } from '@riadh-adrani/ruvy';
+import {
+  PropsWithUtility,
+  useCallback,
+  useEffect,
+  useReactive,
+  useState,
+} from '@riadh-adrani/ruvy';
 import { Reply, VideoComment } from '../../types/video';
 import GoogleSpinner from '../Spinner/Google.spinner';
 import useApi from '../../utils/api';
@@ -32,6 +38,112 @@ export default (props: CommentRepliesProps) => {
       .finally(() => (newReply.text = ''));
   };
 
+  const like = useCallback(async (id: number) => {
+    useApi
+      .post<ApiResponse<Reply>>(
+        `videos/${comment.videoId}/comments/${comment.id}/replies/${id}/like`
+      )
+      .then((data) => {
+        const reply = data.data.data;
+
+        if (!reply) return;
+
+        setReplies((replies) => replies.map((it) => (it.id === id ? reply : it)));
+      });
+  });
+
+  const unlike = useCallback(async (id: number) => {
+    useApi
+      .delete<ApiResponse<Reply>>(
+        `videos/${comment.videoId}/comments/${comment.id}/replies/${id}/like`
+      )
+      .then((data) => {
+        const reply = data.data.data;
+
+        if (!reply) return;
+
+        setReplies((replies) => replies.map((it) => (it.id === id ? reply : it)));
+      });
+  });
+
+  const dislike = useCallback(async (id: number) => {
+    useApi
+      .post<ApiResponse<Reply>>(
+        `videos/${comment.videoId}/comments/${comment.id}/replies/${id}/dislike`
+      )
+      .then((data) => {
+        const reply = data.data.data;
+
+        if (!reply) return;
+
+        setReplies((replies) => replies.map((it) => (it.id === id ? reply : it)));
+      });
+  });
+
+  const undislike = useCallback(async (id: number) => {
+    useApi
+      .delete<ApiResponse<Reply>>(
+        `videos/${comment.videoId}/comments/${comment.id}/replies/${id}/dislike`
+      )
+      .then((data) => {
+        const reply = data.data.data;
+
+        if (!reply) return;
+
+        setReplies((replies) => replies.map((it) => (it.id === id ? reply : it)));
+      });
+  });
+
+  const heart = useCallback(async (id: number) => {
+    useApi
+      .post<ApiResponse<Reply>>(
+        `videos/${comment.videoId}/comments/${comment.id}/replies/${id}/heart`
+      )
+      .then((data) => {
+        const reply = data.data.data;
+
+        if (!reply) return;
+
+        setReplies((replies) => replies.map((it) => (it.id === id ? reply : it)));
+      });
+  });
+
+  const unheart = useCallback(async (id: number) => {
+    useApi
+      .delete<ApiResponse<Reply>>(
+        `videos/${comment.videoId}/comments/${comment.id}/replies/${id}/heart`
+      )
+      .then((data) => {
+        const reply = data.data.data;
+
+        if (!reply) return;
+
+        setReplies((replies) => replies.map((it) => (it.id === id ? reply : it)));
+      });
+  });
+
+  const remove = useCallback(async (id: number) => {
+    useApi
+      .delete<ApiResponse<Reply>>(`videos/${comment.videoId}/comments/${comment.id}/replies/${id}`)
+      .then(() => {
+        setReplies((replies) => replies.filter((it) => it.id !== id));
+      });
+  });
+
+  const edit = useCallback(async (id: number, text: string) => {
+    useApi
+      .put<ApiResponse<Reply>>(`videos/${comment.videoId}/comments/${comment.id}/replies/${id}`, {
+        text,
+      })
+      .then((data) => {
+        const reply = data.data.data;
+
+        if (!reply) return;
+
+        setReplies((replies) => replies.map((it) => (it.id === id ? reply : it)));
+      });
+  });
+
   // fetch replies
   useEffect(() => {
     useApi
@@ -64,7 +176,17 @@ export default (props: CommentRepliesProps) => {
       </div>
       <div class="col gap-1">
         {replies.map((it) => (
-          <CommentReply reply={it} />
+          <CommentReply
+            reply={it}
+            onLike={() => like(it.id)}
+            onUnDislike={() => undislike(it.id)}
+            onUnLike={() => unlike(it.id)}
+            onHeart={() => heart(it.id)}
+            onUnheart={() => unheart(it.id)}
+            onDislike={() => dislike(it.id)}
+            onDelete={() => remove(it.id)}
+            onEditConfirm={(text) => edit(it.id, text)}
+          />
         ))}
       </div>
       <div if={loading} class="self-center">

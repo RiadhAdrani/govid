@@ -15,6 +15,14 @@ import { PlayerContext } from '../../context/Player.context';
 
 export interface ReplyProps extends PropsWithUtility {
   reply: Reply;
+  onLike: () => void;
+  onUnLike: () => void;
+  onDislike: () => void;
+  onUnDislike: () => void;
+  onHeart: () => void;
+  onUnheart: () => void;
+  onEditConfirm: (text: string) => Promise<void>;
+  onDelete: () => void;
 }
 
 export default (props: ReplyProps) => {
@@ -23,26 +31,36 @@ export default (props: ReplyProps) => {
 
   const [showActions, setShowActions] = useState(false);
 
-  const { reply } = props;
+  const {
+    reply,
+    onDelete,
+    onDislike,
+    onEditConfirm,
+    onHeart,
+    onLike,
+    onUnDislike,
+    onUnLike,
+    onUnheart,
+  } = props;
 
   const edit = useReactive({ text: reply.text, is: false, loading: false });
 
   const ratingActions = [
     {
       icon: reply.isLiked ? 'i-mdi-thumb-up text-green-600' : 'i-mdi-light-thumb-up',
-      onClick: () => {},
+      onClick: () => (reply.isLiked ? onUnLike() : onLike()),
       tooltip: 'Like',
       count: reply.likeCount > 0 ? reply.likeCount : undefined,
     },
     {
       icon: reply.isDisliked ? 'i-mdi-thumb-down text-green-600' : 'i-mdi-light-thumb-down',
-      onClick: () => {},
+      onClick: () => (reply.isDisliked ? onUnDislike() : onDislike()),
       tooltip: 'Like',
       count: reply.dislikeCount > 0 ? reply.dislikeCount : undefined,
     },
     {
       icon: reply.isHearted ? 'i-mdi-heart text-red-600' : 'i-mdi-light-heart',
-      onClick: () => {},
+      onClick: () => (reply.isHearted ? onUnheart() : onHeart()),
       tooltip: reply.isHearted ? `Hearted by ${data?.owner.firstName} ${data?.owner.lastName}` : '',
     },
   ];
@@ -60,7 +78,7 @@ export default (props: ReplyProps) => {
       },
       {
         icon: 'i-mdi-light-delete',
-        onClick: () => {},
+        onClick: () => onDelete(),
         tooltip: 'Delete',
       },
     ];
@@ -74,7 +92,7 @@ export default (props: ReplyProps) => {
 
   const confirmEdit = async () => {
     try {
-      // TODO: edit
+      await onEditConfirm(edit.text);
     } catch (error) {
     } finally {
       edit.loading = false;
@@ -104,7 +122,8 @@ export default (props: ReplyProps) => {
             <textarea
               disabled={edit.loading}
               value={edit.text}
-              rows={5}
+              placeholder="Edit reply..."
+              rows={2}
               onInput={(e) => (edit.text = e.currentTarget.value)}
               class={[
                 'p-2 text-1em font-inherit bg-transparent border-none',
