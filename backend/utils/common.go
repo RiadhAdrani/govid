@@ -41,3 +41,25 @@ func GetIdParamFromContext(idName string, c *gin.Context) (int, error) {
 
 	return id, nil
 }
+
+func GetPaginationDataFromContext(c *gin.Context) (int, int, error) {
+	// get query params
+	rFrom := c.DefaultQuery("from", "0")
+	rCount := c.Query("count")
+
+	var from int
+	var count int
+
+	from, err := strconv.Atoi(rFrom)
+
+	if err != nil {
+		return from, count, err
+	}
+
+	count, err = strconv.Atoi(rCount)
+	if err != nil {
+		return from, count, err
+	}
+
+	return from, count, err
+}
