@@ -10,9 +10,12 @@ import (
 func PlaylistRoutes(router *gin.Engine) {
 	router.POST("/playlists", middleware.RequireAuth, controller.CreatePlaylist)
 
-	router.GET("/playlists/user/:id", controller.GetPlaylists)
-	router.GET("/playlists/me", middleware.RequireAuth, controller.GetMyPlaylists)
+	router.GET("/playlists/users/me", middleware.RequireAuth, controller.GetMyPlaylists)
+	router.GET("/playlists/users/:id", controller.GetPlaylists)
 
 	router.DELETE("/playlists/:id", middleware.RequireAuth, controller.DeletePlaylist)
 	router.PUT("/playlists/:id", middleware.RequireAuth, controller.UpdatePlaylist)
+
+	router.POST("/playlists/:id/videos/:video", middleware.RequireAuth, controller.AddPlaylistVideo)
+	router.DELETE("/playlists/:id/videos/:video", middleware.RequireAuth, controller.DeletePlaylistVideo)
 }

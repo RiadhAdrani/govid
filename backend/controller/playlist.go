@@ -6,7 +6,6 @@ import (
 	"backend/schema"
 	"backend/utils"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -37,6 +36,10 @@ func beforePlaylistAction(c *gin.Context) (schema.User, schema.Playlist, int, er
 
 	if err != nil {
 		return user, playlist, http.StatusNotFound, errors.New("playlist not found")
+	}
+
+	if user.Id != playlist.OwnerId {
+		return user, playlist, http.StatusForbidden, errors.New("forbidden action")
 	}
 
 	return user, playlist, http.StatusOK, nil
@@ -268,8 +271,6 @@ func GetPlaylists(c *gin.Context) {
 		return
 	}
 
-	log.Printf("user id = %d", user.Id)
-
 	playlists, err := getPlaylists(userId, from, count)
 
 	if err != nil {
@@ -282,6 +283,150 @@ func GetPlaylists(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": playlists,
-		"user": user,
+	})
+}
+
+func AddPlaylistVideo(c *gin.Context) {
+	_, playlist, status, err := beforePlaylistAction(c)
+
+	if err != nil {
+		c.JSON(status, gin.H{
+			"err": err.Error(),
+			"msg": "something went wrong",
+		})
+		return
+	}
+
+	// get video id
+	videoId, err := utils.GetIdParamFromContext("video", c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"err": err.Error(),
+			"msg": "invalid user id",
+		})
+		return
+	}
+
+	// check if video exists
+	video := schema.Video{}
+
+	err = config.DB.First(&video, videoId).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"err": err.Error(),
+			"msg": "video not found",
+		})
+		return
+	}
+
+	// check if video does not exist in the playlist
+	maybeVideo := schema.PlaylistVideo{}
+
+	config.DB.Where("playlist_id = ? AND video_id = ?", playlist.Id, video.Id).First(&maybeVideo)
+
+	if maybeVideo.Id != 0 {
+		c.JSON(http.StatusConflict, gin.H{
+			"msg": "video already in playlist",
+		})
+		return
+	}
+
+	// get the number of the videos in the playlist
+	var count int64 = 0
+
+	err = config.DB.Model(&schema.PlaylistVideo{}).Where("playlist_id = ?", playlist.Id).Count(&count).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"err": err.Error(),
+			"msg": "unable to get playlist's video count",
+		})
+		return
+	}
+
+	item := schema.PlaylistVideo{}
+
+	item.Index = count
+	item.VideoId = video.Id
+	item.Video = video
+	item.PlaylistId = playlist.Id
+	item.Playlist = playlist
+
+	err = config.DB.Save(&item).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"err": err.Error(),
+			"msg": "unable to add video to playlist",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": item,
+	})
+}
+
+func DeletePlaylistVideo(c *gin.Context) {
+	_, playlist, status, err := beforePlaylistAction(c)
+
+	if err != nil {
+		c.JSON(status, gin.H{
+			"err": err.Error(),
+			"msg": "something went wrong",
+		})
+		return
+	}
+
+	// get video id
+	videoId, err := utils.GetIdParamFromContext("video", c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"err": err.Error(),
+			"msg": "invalid user id",
+		})
+		return
+	}
+
+	// check if video exists
+	video := schema.Video{}
+
+	err = config.DB.First(&video, videoId).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"err": err.Error(),
+			"msg": "video not found",
+		})
+		return
+	}
+
+	// check if video exists in the playlist
+	item := schema.PlaylistVideo{}
+
+	config.DB.Where("playlist_id = ? AND video_id = ?", playlist.Id, video.Id).First(&item)
+
+	if item.Id == 0 {
+		c.JSON(http.StatusConflict, gin.H{
+			"msg": "video not in playlist already",
+		})
+		return
+	}
+
+	err = config.DB.Delete(&item).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"err": err.Error(),
+			"msg": "unable to delete video from playlist",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"msg": "video deleted from playlist successfully",
 	})
 }

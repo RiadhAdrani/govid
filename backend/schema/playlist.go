@@ -14,8 +14,10 @@ type PlaylistVideo struct {
 	VideoId int   `json:"videoId" gorm:"not null"`
 	Video   Video `json:"video" gorm:"foreignKey:VideoId"`
 
-	PlaylistId int   `json:"playlistId" gorm:"not null"`
-	Playlist   Video `json:"playlist" gorm:"foreignKey:PlaylistId"`
+	PlaylistId int      `json:"playlistId" gorm:"not null"`
+	Playlist   Playlist `json:"playlist" gorm:"foreignKey:PlaylistId"`
+
+	Index int64 `json:"index" gorm:"not null"`
 
 	Base
 }
