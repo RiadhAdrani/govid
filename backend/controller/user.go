@@ -2,8 +2,11 @@ package controller
 
 import (
 	"backend/config"
+	"backend/middleware"
 	"backend/schema"
+	"backend/utils"
 	"backend/validators"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -165,7 +168,30 @@ func SignInUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": tokenString})
 }
 
-func GetUser(c *gin.Context) {
+func getUser(id int, currentId int) (schema.User, error) {
+	user := schema.User{}
+
+	err := config.DB.First(&user, id).Error
+
+	if err != nil {
+		return user, errors.New("unable to retrieve user")
+	}
+
+	// get user subscriber count
+	var subCount int64
+
+	err = config.DB.Model(&schema.Subscription{}).Where("subscribed_id", user.Id).Count(&subCount).Error
+
+	user.SubCount = subCount
+
+	if err != nil {
+		return user, errors.New("unable to retrieve user sub count")
+	}
+
+	return user, nil
+}
+
+func GetCurrentUser(c *gin.Context) {
 	user, exists := c.Get("user")
 
 	if !exists {
@@ -177,6 +203,45 @@ func GetUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"user": user})
+}
+
+func GetUser(c *gin.Context) {
+	// user id
+	userId, err := utils.GetIdParamFromContext("id", c)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"err": "bad user id",
+			"id":  userId,
+		})
+		return
+	}
+
+	user, err := getUser(userId, 0)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"err": err.Error(),
+			"msg": "User not found",
+		})
+		return
+	}
+
+	// get user who made the request, if exists
+	currentUser := middleware.GetUserFromContext(c)
+
+	if currentUser.Id != 0 {
+		// check if current user is subscribed to user
+		subscription := schema.Subscription{}
+
+		config.DB.Where("subscriber_id = ? AND subscribed_id = ?", currentUser.Id, user.Id).First(&subscription)
+
+		if subscription.Id != 0 {
+			user.Subscribed = true
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": user})
 }
 
 func Subscribe(c *gin.Context) {

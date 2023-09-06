@@ -11,7 +11,8 @@ func UserRoutes(router *gin.Engine) {
 	router.DELETE("/users/:id", middleware.RequireAuth, controller.DeleteUser)
 	router.PUT("/users/:id", middleware.RequireAuth, controller.UpdateUser)
 
-	router.GET("/users/me", middleware.RequireAuth, controller.GetUser)
+	router.GET("/users/me", middleware.RequireAuth, controller.GetCurrentUser)
+	router.GET("/users/:id", controller.GetUser)
 
 	// auth
 	router.POST("/signup", controller.CreateUser)
