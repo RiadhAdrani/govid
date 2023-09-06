@@ -483,7 +483,7 @@ func GetVideoMetaData(id int, userId int) (schema.Video, error) {
 		return video, errors.New("could not get user subscribers count")
 	}
 
-	video.Owner.SubCount = int(subCount)
+	video.Owner.SubCount = subCount
 
 	// likes count
 	var likesCount int64
