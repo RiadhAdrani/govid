@@ -15,7 +15,7 @@ type Video struct {
 	DisLikesCount   int     `json:"dislikesCount" gorm:"-"`
 	IsLiked         bool    `json:"isLiked" gorm:"-"`
 	IsDisLiked      bool    `json:"isDisliked" gorm:"-"`
-	Views           int64   `json:"views" gorm:"-"`
+	Views           int64   `json:"views" gorm:"default:0"`
 
 	// gorm overrides
 	Base
