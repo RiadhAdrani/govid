@@ -14,6 +14,7 @@ func VideoRoutes(router *gin.Engine) {
 
 	router.GET("/videos/:id/watch", controller.WatchVideo)
 	router.GET("/videos/:id", controller.GetVideo)
+	router.GET("/videos/user/:id", controller.GetUserVideos)
 
 	router.POST("/videos/:id/like", middleware.RequireAuth, controller.LikeVideo)
 	router.DELETE("/videos/:id/like", middleware.RequireAuth, controller.UnLikeVideo)

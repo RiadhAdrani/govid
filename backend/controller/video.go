@@ -2165,3 +2165,93 @@ func UnHeartReply(c *gin.Context) {
 	// return updated reply
 	c.JSON(http.StatusOK, gin.H{"data": reply, "msg": "reply unrated successfully"})
 }
+
+func GetUserVideos(c *gin.Context) {
+	// get userId in question
+	userId, err := utils.GetIdParamFromContext("id", c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "invalid id"})
+		return
+	}
+
+	// check if user exists
+	user, err := getUser(userId, 0)
+
+	if err != nil || user.Id == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"err": err.Error(), "msg": "user not found"})
+		return
+	}
+
+	from, count, err := utils.GetPaginationDataFromContext(c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"err": err.Error(), "msg": "unable to get pagination parameters"})
+		return
+	}
+
+	videos := []schema.Video{}
+
+	// err = config.DB.
+	// 	Preload("Owner").
+	// 	Offset(from).
+	// 	Limit(count).
+	// 	Joins(`
+	// 		LEFT JOIN (
+	// 						SELECT reply_id, true AS liked FROM video_comment_reply_likes
+	// 						WHERE user_id = ? AND deleted_at IS NULL
+	// 						GROUP BY reply_id
+	// 		) AS liked_by_user ON video_comment_replies.id = liked_by_user.reply_id
+	// 		`, user.Id).
+	// 	Where("owner_id = ? AND public = true", userId).
+	// 	Find(&videos).Error
+
+	err = config.DB.Model(&schema.Video{}).
+		Preload("Owner").
+		Limit(count).
+		Offset(from).
+		Select(`
+			videos.id,
+			videos.title,
+			videos.description,
+			videos.owner_id,
+			videos.tags,
+			videos.duration,
+			COALESCE(views.count, 0) AS views
+		`).
+		Joins(`
+				LEFT JOIN (
+					SELECT video_id, COUNT(*) AS count FROM video_views
+					WHERE deleted_at IS NULL
+					GROUP BY video_id
+				) AS views ON videos.id = views.video_id
+		`).
+		Where("videos.owner_id = ?", userId).
+		Group(`
+			videos.id,
+			videos.title,
+			videos.description,
+			videos.owner_id,
+			videos.tags,
+			videos.duration,
+			views.count
+		`).
+		Find(&videos).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to get videos"})
+		return
+	}
+
+	// get all videos count
+	var totalCount int64 = 0
+
+	err = config.DB.Model(&schema.Video{}).Where("owner_id = ? AND public = true", userId).Count(&totalCount).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error(), "msg": "unable to get total videos count"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": videos, "totalCount": totalCount})
+}

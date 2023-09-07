@@ -182,11 +182,11 @@ func getUser(id int, currentId int) (schema.User, error) {
 
 	err = config.DB.Model(&schema.Subscription{}).Where("subscribed_id", user.Id).Count(&subCount).Error
 
-	user.SubCount = subCount
-
 	if err != nil {
 		return user, errors.New("unable to retrieve user sub count")
 	}
+
+	user.SubCount = subCount
 
 	return user, nil
 }

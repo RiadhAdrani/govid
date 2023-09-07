@@ -1,10 +1,11 @@
 import {
   Fragment,
-  RuvyNode,
+  PropsWithUtility,
   getParams,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useReactive,
   useState,
 } from '@riadh-adrani/ruvy';
@@ -14,11 +15,12 @@ import { PublicUser } from '../types/user';
 import GButton from '../components/Button/G.Button';
 import GoogleSpinner from '../components/Spinner/Google.spinner';
 import { UserContext } from '../context/User.context';
+import ChannelVideos from '../components/Channel/Channel.Videos';
 
 export interface Tab {
   name: string;
   id: string;
-  component: RuvyNode;
+  Component: (props: PropsWithUtility<{ user: PublicUser }>) => JSX.Element;
 }
 
 export default () => {
@@ -31,14 +33,18 @@ export default () => {
   // get user data
   const { id } = getParams();
 
-  const tabs: Array<Tab> = [
-    { name: 'Videos', id: 'video', component: 'hello' },
-    { name: 'Playlists', id: 'playlists', component: null },
-    { name: 'Subscriptions', id: 'subscriptions', component: null },
-    { name: 'About', id: 'about', component: null },
-  ];
+  const tabs: Array<Tab> = useMemo(() => {
+    return [
+      { name: 'Videos', id: 'video', Component: ChannelVideos },
+      { name: 'Playlists', id: 'playlists', Component: ChannelVideos },
+      { name: 'Subscriptions', id: 'subscriptions', Component: ChannelVideos },
+      { name: 'About', id: 'about', Component: ChannelVideos },
+    ];
+  }, user.data);
 
-  const [tab, setTab] = useState<Tab>(tabs[0]);
+  const [tab, setTab] = useState(tabs[0].id);
+
+  const Component = useMemo(() => tabs.find((it) => it.id === tab)?.Component!);
 
   const onSubscribe = useCallback(() => {
     if (!user.data) return;
@@ -117,15 +123,17 @@ export default () => {
                 key={key}
                 class={[
                   'p-x-4 p-y-2 border-b-2px border-b-solid border-b-transparent cursor-pointer',
-                  it.id === tab.id && 'border-b-zinc-300',
+                  it.id === tab && 'border-b-zinc-300',
                 ]}
-                onClick={() => setTab(it)}
+                onClick={() => setTab(it.id)}
               >
                 {it.name}
               </div>
             ))}
           </div>
-          <div class="w-full bg-zinc-900 rounded flex-1">{tab.component}</div>
+          <div class="w-full rounded flex-1">
+            <Component user={user.data!} />
+          </div>
         </div>
       </Fragment>
     </>
