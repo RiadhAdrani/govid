@@ -16,6 +16,9 @@ import GButton from '../components/Button/G.Button';
 import GoogleSpinner from '../components/Spinner/Google.spinner';
 import { UserContext } from '../context/User.context';
 import ChannelVideos from '../components/Channel/Channel.Videos';
+import ChannelPlaylist from '../components/Channel/Channel.Playlist';
+import ChannelSubscriptions from '../components/Channel/Channel.Subscriptions';
+import ChannelAbout from '../components/Channel/Channel.About';
 
 export interface Tab {
   name: string;
@@ -36,15 +39,15 @@ export default () => {
   const tabs: Array<Tab> = useMemo(() => {
     return [
       { name: 'Videos', id: 'video', Component: ChannelVideos },
-      { name: 'Playlists', id: 'playlists', Component: ChannelVideos },
-      { name: 'Subscriptions', id: 'subscriptions', Component: ChannelVideos },
-      { name: 'About', id: 'about', Component: ChannelVideos },
+      { name: 'Playlists', id: 'playlists', Component: ChannelPlaylist },
+      { name: 'Subscriptions', id: 'subscriptions', Component: ChannelSubscriptions },
+      { name: 'About', id: 'about', Component: ChannelAbout },
     ];
   }, user.data);
 
   const [tab, setTab] = useState(tabs[0].id);
 
-  const Component = useMemo(() => tabs.find((it) => it.id === tab)?.Component!);
+  const Component = useMemo(() => tabs.find((it) => it.id === tab)?.Component!, tab);
 
   const onSubscribe = useCallback(() => {
     if (!user.data) return;

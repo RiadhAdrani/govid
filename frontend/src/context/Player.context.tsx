@@ -1,10 +1,8 @@
 import {
   DOMEventHandler,
-  Portal,
   PropsWithUtility,
   batch,
   createContext,
-  navigate,
   useContext,
   useEffect,
   useId,
@@ -22,12 +20,10 @@ import {
   VideoComment,
 } from '../types/video';
 import useApi from '../utils/api';
-import Player from '../components/Player/Player';
 import { UserContext } from './User.context';
 import { ApiResponse } from '../types/api';
 import useWindowSize from '../hooks/useWindowSize';
 import { UIContext } from './UI.context';
-import { pick } from '@riadh-adrani/utils';
 
 export interface UseRefData<T = unknown> {
   value: T;
@@ -95,6 +91,8 @@ export interface IPlayerContext {
 
   heartComment: (id: number) => Promise<void>;
   unHeartComment: (id: number) => Promise<void>;
+
+  setVideoElement: (el: HTMLVideoElement) => void;
 }
 
 export const PlayerContext = createContext<IPlayerContext>({
@@ -145,6 +143,8 @@ export const PlayerContext = createContext<IPlayerContext>({
   heartComment: async () => undefined,
   unHeartComment: async () => undefined,
 
+  setVideoElement: () => 0,
+
   comments: [],
   pinnedComment: undefined,
 });
@@ -162,7 +162,7 @@ export const PlayerProvider = (props: PropsWithUtility) => {
   const { showToast } = useContext(UIContext);
   const { isAuthenticated, user } = useContext(UserContext);
 
-  const [videoElement, setVideElement] = useState<HTMLVideoElement | undefined>(undefined);
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | undefined>(undefined);
 
   const [container, setContainer] = useState<HTMLElement | undefined>(undefined);
   const [id, setId] = useState<string | undefined>(undefined);
@@ -633,7 +633,7 @@ export const PlayerProvider = (props: PropsWithUtility) => {
     setTimeout(() => {
       const videoEl = document.querySelector<HTMLVideoElement>(`#${videoElementId}`);
       if (videoEl) {
-        setVideElement(videoEl);
+        setVideoElement(videoEl);
       }
     }, 500);
 
@@ -641,42 +641,6 @@ export const PlayerProvider = (props: PropsWithUtility) => {
       setContainer(miniEl);
     }
   });
-
-  const miniPlayerToggleDeps = [controls.mini, id];
-
-  useEffect(() => {
-    if (!id) return;
-
-    const current = controls.mini;
-    const playing = !paused;
-
-    if (current) {
-      navigate('/');
-
-      if (playing) {
-        setTimeout(() => {
-          togglePlay(true);
-        }, 50);
-      }
-    } else {
-      navigate(`/watch?v=${id}`);
-    }
-
-    setTimeout(() => {
-      if (current === controls.mini) {
-        const videoEl = document.querySelector<HTMLVideoElement>(
-          `#${current ? miniPlayerId : watchElementId}`
-        );
-
-        if (videoEl) {
-          setContainer(videoEl);
-        }
-      }
-    }, 25);
-
-    if (!miniPlayerId) {
-    }
-  }, miniPlayerToggleDeps);
 
   useEffect(() => {
     if (!container) setId(undefined);
@@ -713,7 +677,7 @@ export const PlayerProvider = (props: PropsWithUtility) => {
       return;
     }
 
-    const segments = [...watchSegments];
+    const segments = [...watchSegments].filter((it) => it.from < it.to);
     setWatchSegments([]);
 
     // we send data to the server
@@ -733,12 +697,6 @@ export const PlayerProvider = (props: PropsWithUtility) => {
     if (!id) return;
 
     useApi.get<GetVideoCommentResponse>(`videos/${id}/comments?from=0&count=10`).then((it) => {
-      console.log(
-        it.data.data?.map((it) =>
-          pick(it, 'id', 'dislikeCount', 'isDisliked', 'isHearted', 'likeCount', 'isLiked')
-        )
-      );
-
       if (it.data.data) {
         setComments(it.data.data);
       }
@@ -785,6 +743,7 @@ export const PlayerProvider = (props: PropsWithUtility) => {
         pinnedComment,
         pinComment,
         unpinComment,
+        setVideoElement,
 
         likeComment,
         unlikeComment,
@@ -794,9 +753,6 @@ export const PlayerProvider = (props: PropsWithUtility) => {
         unHeartComment,
       }}
     >
-      <Portal if={container !== undefined} container={container as Element}>
-        <Player />
-      </Portal>
       <div
         id={miniPlayerId}
         class={[
