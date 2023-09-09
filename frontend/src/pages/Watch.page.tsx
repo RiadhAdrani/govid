@@ -13,13 +13,13 @@ import { PlayerContext } from '../context/Player.context';
 import useApi from '../utils/api';
 import { UserContext } from '../context/User.context';
 import Comment from '../components/Comment/Comment';
+import Player from '../components/Player/Player';
 
 export default () => {
   const { isAuthenticated, user } = useContext(UserContext);
   const {
     comments,
     addComment,
-    watchElementId,
     setId,
     toggleMiniPlayer,
     data,
@@ -77,21 +77,31 @@ export default () => {
   return (
     <div class={'row max-w-100vw flex-1 gap-8 p-y-7 p-x-10'}>
       <div class="flex-col flex-1 gap-3">
-        <div id={watchElementId} class="relative w-100% aspect-video bg-zinc-900"></div>
+        <div class="relative w-100% aspect-video bg-zinc-900">
+          <Player />
+        </div>
         <div class="text-left col gap-4 m-t-2">
           <h3 class="m-0 bg-zinc-900 rounded p-3">{data?.title ?? '...'}</h3>
           <div class="row items-center justify-between">
             <div class="row gap-3">
-              <img
-                src="https://yt3.googleusercontent.com/ytc/AOPolaQ2iMmw9cWFFjnwa13nBwtZQbl-AqGYkkiTqNaTLg=s176-c-k-c0x00ffffff-no-rj-mo"
-                class="h-50px w-50px rounded-50%"
-              />
-              <div class="col self-center">
+              <a href={`user/${data?.owner.id}`}>
+                <img
+                  src="https://yt3.googleusercontent.com/ytc/AOPolaQ2iMmw9cWFFjnwa13nBwtZQbl-AqGYkkiTqNaTLg=s176-c-k-c0x00ffffff-no-rj-mo"
+                  class="h-50px w-50px rounded-50%"
+                />
+              </a>
+              <a
+                class="col self-center text-inherit hover:text-inherit"
+                href={`user/${data?.owner.id}`}
+              >
                 <p class="text-sm">
                   {data?.owner.firstName ?? '...'} {data?.owner.lastName ?? '...'}
                 </p>
-                <p class="text-xs">{data?.owner.subCount ?? 0} subscribers</p>
-              </div>
+                <p class="text-xs">
+                  {data?.owner.subCount ?? 0} subscriber
+                  {data && data?.owner.subCount > 1 ? 's' : ''}
+                </p>
+              </a>
               <GButton
                 if={user?.id !== data?.owner.id}
                 class="text-sm p-x-5 self-center rounded-20px p-y-0 bg-white text-[color:black]"

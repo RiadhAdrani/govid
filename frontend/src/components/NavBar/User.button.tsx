@@ -14,7 +14,7 @@ export default () => {
     href?: string;
     topDivider?: boolean;
   }> = [
-    { icon: 'i-mdi-user', label: 'Your channel', topDivider: true },
+    { icon: 'i-mdi-user', label: 'Your channel', href: `/user/${user?.id}`, topDivider: true },
     { icon: 'i-mdi-video', label: 'Studio' },
     { icon: 'i-mdi-cog', label: 'Settings' },
     { icon: 'i-mdi-logout', label: 'Sign out', onClick: signout, topDivider: true },
@@ -39,9 +39,13 @@ export default () => {
               <div
                 if={it.topDivider == true}
                 class="border-t-solid border-t-zinc-700 border-t-1px h-1px m-y-2"
-              ></div>
+              />
               <GButton
-                class={'bg-transparent hover:bg-zinc-700 rounded-0px! p-x-4 row items-center gap-5'}
+                dom:tag={it.href ? 'a' : 'button'}
+                href={it.href}
+                class={
+                  'bg-transparent hover:bg-zinc-700 rounded-0px! text-inherit hover:text-inherit p-x-4 row items-center gap-5'
+                }
                 onClick={() => {
                   it.onClick?.();
                   close();

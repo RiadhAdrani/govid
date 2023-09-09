@@ -1,4 +1,4 @@
-import { useContext, useMemo } from '@riadh-adrani/ruvy';
+import { useContext, useEffect, useMemo, useRef } from '@riadh-adrani/ruvy';
 import { PlayerContext } from '../../context/Player.context';
 import Icon from '../Icon/Icon';
 import PlayerControls from './Player.controls';
@@ -21,9 +21,21 @@ export default () => {
     onTimeUpdated,
     onEnded,
     onPause,
+    setVideoElement,
   } = useContext(PlayerContext);
 
-  const videoURL = useMemo(() => (id ? `http://localhost:8080/videos/${id}/watch` : undefined));
+  const el = useRef<HTMLVideoElement>();
+
+  useEffect(() => {
+    if (!el.value) return;
+
+    setVideoElement(el.value);
+  }, el);
+
+  const videoURL = useMemo(
+    () => (id ? `http://localhost:8080/videos/${id}/watch` : undefined),
+    [id]
+  );
 
   return (
     <div class="w-100% h-100%">
@@ -85,6 +97,7 @@ export default () => {
         volume={volume}
         onEnded={onEnded}
         onPause={onPause}
+        ref={el}
       >
         <source src={videoURL} type={'video/mp4'}></source>
       </video>
