@@ -18,7 +18,7 @@ export default (props: VideoGridProps) => {
     let count = 1;
 
     if (width > 1200) count = 4;
-    if (isInInterval(790, width, 1199)) count = 3;
+    if (isInInterval(790, width, 1200)) count = 3;
     if (isInInterval(610, width, 789)) count = 2;
 
     return segmentize(props.videos, count);

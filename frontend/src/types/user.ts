@@ -1,3 +1,5 @@
+import { Base } from './common';
+
 export interface User {
   id: number;
   firstName: string;
@@ -8,7 +10,7 @@ export interface User {
   subscribed: boolean;
 }
 
-export type PublicUser = Omit<User, 'password'>;
+export type PublicUser = Base & Omit<User, 'password'>;
 
 export type SignupBody = Omit<User, 'id'>;
 export type SignupFunction = (body: SignupBody) => Promise<void>;

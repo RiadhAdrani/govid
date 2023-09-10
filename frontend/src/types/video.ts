@@ -99,3 +99,18 @@ export type GetVideoCommentResponse = ApiResponse<
   Array<VideoComment>,
   { totalCount: number; pinned?: number }
 >;
+
+export interface Playlist extends Base {
+  title: string;
+  description: string;
+  public: boolean;
+  ownerId: number;
+  owner: PublicUser;
+}
+
+export interface PlaylistVideo extends Base {
+  videoId: number;
+  video: Video;
+  playlistId: number;
+  index: number;
+}
