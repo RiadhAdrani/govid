@@ -358,8 +358,9 @@ func AddPlaylistVideo(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"err": err.Error(),
-			"msg": "unable to add video to playlist",
+			"err":   err.Error(),
+			"msg":   "unable to add video to playlist",
+			"entry": item,
 		})
 		return
 	}
@@ -429,4 +430,105 @@ func DeletePlaylistVideo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"msg": "video deleted from playlist successfully",
 	})
+}
+
+func GetPlaylist(c *gin.Context) {
+	playlistId, err := utils.GetIdParamFromContext("id", c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"err": err.Error(),
+			"msg": "unable to parse playlist id",
+		})
+		return
+	}
+
+	playlist := schema.Playlist{}
+
+	err = config.DB.Preload("Owner").Where("id = ?", playlistId).First(&playlist).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"err": err.Error(),
+			"msg": "unable to get playlist",
+		})
+		return
+	}
+
+	if playlist.Id == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"err": err.Error(),
+			"msg": "playlist not found",
+		})
+		return
+	}
+
+	// get all playlist items
+	items := []schema.PlaylistVideo{}
+
+	err = config.DB.Preload("Video").Where("playlist_id = ?", playlistId).Find(&items).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"err": err.Error(),
+			"msg": "unable to get playlist items",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  playlist,
+		"items": items,
+	})
+}
+
+func GetAddPlaylistOptions(c *gin.Context) {
+	videoId, err := utils.GetIdParamFromContext("id", c)
+
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"err": err.Error(),
+			"msg": "unable to parse video id",
+		})
+		return
+	}
+
+	// user
+	user := middleware.GetUserFromContext(c)
+
+	video := schema.Video{}
+	// check if video exists
+	config.DB.First(&video, videoId)
+
+	if video.Id == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"err": err.Error(),
+			"msg": "video not found",
+		})
+		return
+	}
+
+	playlists := []schema.Playlist{}
+
+	// get all playlists where video is not present
+	err = config.DB.Model(schema.Playlist{}).
+		Preload("Owner").
+		Select("playlists.*").
+		Joins("LEFT JOIN playlist_videos ON playlists.id = playlist_videos.playlist_id").
+		Where("(playlist_videos.video_id IS NULL OR playlist_videos.video_id != ?) AND playlists.owner_id = ?", video.Id, user.Id).
+		Find(&playlists).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"err": err.Error(),
+			"msg": "unable to get playlists",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": playlists,
+		"msg":  "done",
+	})
+
 }
