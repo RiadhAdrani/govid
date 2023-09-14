@@ -44,14 +44,14 @@ export default (props: PropsWithUtility<{ user: PublicUser }>) => {
         {rows.map((row) => (
           <div class="row gap-2">
             {row.map((item) => (
-              <div key={item.id} class="w-210px rounded col gap-2">
+              <a key={item.id} class="w-210px rounded col gap-2" href={`/playlists/${item.id}`}>
                 <div class="relative w-full aspect-video bg-zinc-800 rounded col-center">
                   <Icon icon="i-mdi-playlist-play absolute text-2em" />
                 </div>
                 <div class="col items-start text-start">
                   <div class="text-zinc-300 text-0.9em">{item.title}</div>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         ))}

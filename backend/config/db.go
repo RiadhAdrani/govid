@@ -84,7 +84,7 @@ func SyncDB() {
 	DB.AutoMigrate(&schema.VideoCommentReplyLike{})
 	DB.AutoMigrate(&schema.VideoCommentReplyDisLike{})
 
-	// playlists
+	// playlists ---------------------------------------
 
 	DB.AutoMigrate(&schema.Playlist{})
 	DB.AutoMigrate(&schema.PlaylistVideo{})
